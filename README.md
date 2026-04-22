@@ -93,51 +93,156 @@ It includes real-time booking, payments, chat, admin control panel, and professi
 * Secure payment webhook verification
 
 ---
-
-## 📁 Project Structure
-
-### Frontend
-
-```
+frontend and backend structure 
 client/
-src/
-  app/
-  components/
-  features/
-    auth/
-    user/
-    professional/
-    admin/
-    booking/
-    payment/
-    chat/
-  pages/
-  hooks/
-  services/
-  store/
-  utils/
-```
-
-### Backend
-
-```
-server/
-src/
-  config/
-  modules/
-    auth/
-    users/
-    professionals/
-    bookings/
-    payments/
-    banners/
-    admin/
-  middlewares/
-  utils/
-  sockets/
-```
-
----
+├── public/
+│   ├── favicon.ico
+│   ├── logo.svg
+│   ├── robots.txt
+│   └── images/
+│       ├── banners/
+│       ├── icons/
+│       └── categories/
+│
+├── src/
+│   ├── main.jsx
+│   ├── App.jsx
+│   │
+│   ├── app/                       # App level config
+│   │   ├── router.jsx
+│   │   ├── providers.jsx
+│   │   ├── store.js
+│   │   └── axios.js
+│   │
+│   ├── assets/
+│   │   ├── images/
+│   │   ├── icons/
+│   │   └── animations/
+│   │
+│   ├── components/
+│   │   ├── ui/                   # Reusable UI
+│   │   │   ├── Button.jsx
+│   │   │   ├── Input.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   ├── Card.jsx
+│   │   │   ├── Loader.jsx
+│   │   │   └── Table.jsx
+│   │   │
+│   │   ├── layout/
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   ├── Header.jsx
+│   │   │   └── DashboardLayout.jsx
+│   │   │
+│   │   └── shared/
+│   │       ├── ProtectedRoute.jsx
+│   │       ├── RoleGuard.jsx
+│   │       ├── EmptyState.jsx
+│   │       └── Pagination.jsx
+│
+│   ├── pages/                    # Public pages
+│   │   ├── Home.jsx
+│   │   ├── About.jsx
+│   │   ├── Contact.jsx
+│   │   ├── Services.jsx
+│   │   ├── CategoryDetails.jsx
+│   │   ├── ProviderDetails.jsx
+│   │   ├── Login.jsx
+│   │   ├── Register.jsx
+│   │   └── NotFound.jsx
+│
+│   ├── features/                 # Feature based modules
+│   │
+│   │   ├── auth/
+│   │   │   ├── authSlice.js
+│   │   │   ├── authAPI.js
+│   │   │   ├── LoginForm.jsx
+│   │   │   ├── RegisterForm.jsx
+│   │   │   └── ForgotPassword.jsx
+│   │
+│   │   ├── user/
+│   │   │   ├── pages/
+│   │   │   │   ├── Dashboard.jsx
+│   │   │   │   ├── MyBookings.jsx
+│   │   │   │   ├── Wallet.jsx
+│   │   │   │   ├── Notifications.jsx
+│   │   │   │   └── Profile.jsx
+│   │   │   └── userAPI.js
+│   │
+│   │   ├── professional/
+│   │   │   ├── pages/
+│   │   │   │   ├── Dashboard.jsx
+│   │   │   │   ├── Requests.jsx
+│   │   │   │   ├── Earnings.jsx
+│   │   │   │   ├── Reviews.jsx
+│   │   │   │   ├── Availability.jsx
+│   │   │   │   └── Profile.jsx
+│   │   │   └── professionalAPI.js
+│   │
+│   │   ├── admin/
+│   │   │   ├── pages/
+│   │   │   │   ├── Dashboard.jsx
+│   │   │   │   ├── Users.jsx
+│   │   │   │   ├── Professionals.jsx
+│   │   │   │   ├── Bookings.jsx
+│   │   │   │   ├── Payments.jsx
+│   │   │   │   ├── Banners.jsx
+│   │   │   │   ├── Reports.jsx
+│   │   │   │   └── Settings.jsx
+│   │   │   └── adminAPI.js
+│   │
+│   │   ├── booking/
+│   │   │   ├── BookingCard.jsx
+│   │   │   ├── BookingModal.jsx
+│   │   │   ├── bookingAPI.js
+│   │   │   └── bookingSlice.js
+│   │
+│   │   ├── payment/
+│   │   │   ├── Checkout.jsx
+│   │   │   ├── paymentAPI.js
+│   │   │   └── PaymentSuccess.jsx
+│   │
+│   │   ├── banners/
+│   │   │   ├── BannerSlider.jsx
+│   │   │   └── bannerAPI.js
+│   │
+│   │   ├── reviews/
+│   │   │   ├── ReviewCard.jsx
+│   │   │   └── reviewAPI.js
+│   │
+│   │   └── chat/
+│   │       ├── ChatWindow.jsx
+│   │       └── socket.js
+│
+│   ├── hooks/
+│   │   ├── useAuth.js
+│   │   ├── useDebounce.js
+│   │   ├── useSocket.js
+│   │   └── usePagination.js
+│
+│   ├── services/
+│   │   ├── apiClient.js
+│   │   ├── tokenService.js
+│   │   └── socketService.js
+│
+│   ├── store/
+│   │   └── index.js
+│
+│   ├── utils/
+│   │   ├── formatDate.js
+│   │   ├── currency.js
+│   │   ├── validators.js
+│   │   └── constants.js
+│
+│   └── styles/
+│       └── index.css
+│
+├── .env
+├── tailwind.config.js
+├── postcss.config.js
+├── vite.config.js
+└── package.json
 
 ## 💳 Payment Flow
 
