@@ -281,3 +281,53 @@ npm run dev
 ## 🏁 Conclusion
 
 This project is designed as a **production-grade scalable service marketplace**, suitable for high-value client projects (~₹10 lakh+), with strong focus on security, performance, and real-world usability.
+
+
+👤 1. USER REGISTRATION (Simple & Fast)
+
+👉 Goal: Quick signup + instant usage
+
+Required Fields:
+Full Name
+Mobile Number (OTP verification best)
+Email (optional but recommended)
+Password
+Location (City / Address)
+Profile Photo (optional)
+
+
+🧑‍🔧 2. PROFESSIONAL REGISTRATION (Detailed + Verified)
+
+👉 Goal: Trust + verification + service provider setup
+
+Step 1: Basic Info 
+Full Name
+Mobile Number (OTP)
+Email
+Password
+
+Step 2: Professional Details
+Skills / Category (AC repair, Beauty, Cleaning, etc.)
+Experience (years)
+Services Offered (checkbox or array)
+Price per service (starting price)
+Service Area (city/locality)
+Profile Description (bio)
+Profile Photo
+
+Step 3: Identity Verification (KYC)
+Aadhar Card / PAN Card
+Address Proof
+Profile photo (mandatory)
+
+Step 4: Banking Details (for payments)
+Bank Account Number
+IFSC Code
+Account Holder Name
+UPI ID (optional)
+⚠️ Admin Approval Required
+
+
+After registration:
+👉 Status = pending
+👉 Admin approves → then professional becomes active

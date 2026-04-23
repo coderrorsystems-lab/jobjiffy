@@ -1,0 +1,24 @@
+# Jobjiffy - Service Marketplace
+# Allow search engines to crawl the site
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /dashboard
+Disallow: /.env
+Disallow: /node_modules
+
+# Specific rules for Googlebot
+User-agent: Googlebot
+Allow: /
+
+# Specific rules for Bingbot
+User-agent: Bingbot
+Allow: /
+
+# Crawl delay (in seconds)
+Crawl-delay: 1
+
+# Sitemap location (update with your actual domain)
+Sitemap: https://jobjiffy.com/sitemap.xml

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#007BFF" opacity="0.1" stroke="#007BFF" stroke-width="2"/>
+  
+  <!-- Main logo - stylized "J" for Jobjiffy -->
+  <text x="100" y="130" font-size="90" font-weight="bold" fill="#007BFF" text-anchor="middle" font-family="Arial, sans-serif">
+    J
+  </text>
+  
+  <!-- Decorative element -->
+  <circle cx="150" cy="60" r="8" fill="#FF6B35"/>
+  <circle cx="55" cy="65" r="6" fill="#34D399"/>
+</svg>
