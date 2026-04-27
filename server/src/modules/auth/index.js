@@ -1,3 +1,4 @@
-// Auth Module
-// This folder contains authentication logic (routes, controllers, models, services)
-// Files: routes.js, controller.js, model.js, service.js
+export { default as User } from './model.js';
+export { default as authRoutes } from './routes.js';
+export * from './controller.js';
+export * from './service.js';
