@@ -1,3 +1,2 @@
-// Auth Hooks Folder
-// This folder contains custom React hooks for authentication
-// Files: useAuth.js, useRole.js
+export { useAuth } from './useAuth';
+export { useRole } from './useRole';
