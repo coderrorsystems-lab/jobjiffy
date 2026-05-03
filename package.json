@@ -1,0 +1,11 @@
+{
+  "name": "jobjiffy",
+  "version": "1.0.0",
+  "description": "JobJiffy - Job Platform",
+  "scripts": {
+    "dev": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "preview": "cd client && npm run preview",
+    "server": "cd server && npm start"
+  }
+}

@@ -6,6 +6,8 @@ import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import BrandIntroOverlay from "./components/shared/BrandIntroOverlay";
 import Home from "./pages/Home";
+import AllProfessionals from "./pages/AllProfessionals";
+import ProfessionalDetail from "./pages/ProfessionalDetail";
 import ServiceProfessionals from "./pages/ServiceProfessionals";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -63,6 +65,8 @@ function AppContent() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
+          <Route path="/professionals" element={<AllProfessionals />} />
+          <Route path="/professional/:userId" element={<ProfessionalDetail />} />
           <Route path="/services/:serviceSlug" element={<ServiceProfessionals />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />

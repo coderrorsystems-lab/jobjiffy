@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWindowScroll } from '@/hooks';
+import { login } from '../services/authAPI';
+import { useTheme } from '@/theme/useTheme';
 
 export default function Login() {
   useWindowScroll(true);
@@ -12,6 +14,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [networkWarning, setNetworkWarning] = useState('');
+  const { theme, toggleTheme, isDark } = useTheme();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -32,22 +36,34 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // API call will be integrated later
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log({ email, password });
+      const response = await login(email, password);
 
+      // if network was slow, show a non-blocking warning
+      if (response._meta?.slowNetwork) {
+        setNetworkWarning(`Network looks slow (took ${response._meta.duration}ms).`);
+        setTimeout(() => setNetworkWarning(''), 5000);
+      }
+
+      // Mark user as authenticated
       localStorage.setItem('jobjiffy_is_authenticated', 'true');
+      localStorage.setItem('user', JSON.stringify(response.user));
 
       navigate('/');
     } catch (err) {
-      setError('Invalid credentials. Please try again.');
+      if (err.isNetwork || (err.original && err.original.isAxiosError && !err.original.response)) {
+        setError('Network error: please check your internet connection and try again.');
+      } else if (err.isTimeout) {
+        setError('Request timed out. Your network may be slow.');
+      } else {
+        setError(err.message || 'Invalid credentials. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center px-4 py-8">
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
@@ -66,12 +82,31 @@ export default function Login() {
            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 mb-4 mx-auto shadow-lg">
             <span className="text-2xl font-bold text-white">JF</span>
           </div>
-        <div>  <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-500">Sign in to your JobJiffy account</p></div>
+        <div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Welcome Back</h1>
+              <p className="text-gray-500 dark:text-gray-300">Sign in to your JobJiffy account</p>
+            </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="ml-4 px-3 py-1 rounded-md bg-gray-100 dark:bg-slate-700 text-sm text-gray-700 dark:text-gray-200"
+            >
+              {isDark ? 'Dark' : 'Light'}
+            </button>
+          </div>
+        </div>
        </div>
         </motion.div>
 
         {/* Form */}
+        {networkWarning && (
+          <div className="p-2 mb-2 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm">
+            {networkWarning}
+          </div>
+        )}
+
         <motion.form onSubmit={handleSubmit} variants={itemVariants} className="space-y-4">
           {/* Email Input */}
           <div className="group">
@@ -83,7 +118,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-300"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:bg-white dark:focus:bg-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-300 text-gray-900 dark:text-gray-100"
                 required
               />
             </div>
@@ -99,7 +134,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-12 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-300"
+                className="w-full pl-12 pr-12 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:bg-white dark:focus:bg-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-300 text-gray-900 dark:text-gray-100"
                 required
               />
               <button
@@ -117,7 +152,7 @@ export default function Login() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm"
+              className="p-3 bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-700 rounded-lg text-red-600 dark:text-red-200 text-sm"
             >
               {error}
             </motion.div>

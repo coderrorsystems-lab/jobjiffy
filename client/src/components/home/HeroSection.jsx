@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Search, Zap, LogIn, UserPlus } from 'lucide-react';
+import { Search, Zap, LogIn, UserPlus, User, Briefcase } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -29,6 +29,7 @@ const containerVariants = {
 
 export default function HeroSection() {
   const navigate = useNavigate();
+  const [serviceType, setServiceType] = useState('');
   const [location, setLocation] = useState('');
 
   const words = ['Professional', 'Trusted', 'Affordable', 'Premium'];
@@ -41,6 +42,33 @@ export default function HeroSection() {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  const isUserIdSearch = (query) => /^JJ\d{4}$/i.test(query.trim());
+
+  const toServiceSlug = (serviceName) =>
+    String(serviceName || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+  const handleSearchClick = () => {
+    const query = serviceType.trim();
+    if (!query) return;
+
+    if (isUserIdSearch(query)) {
+      navigate(`/professional/${query.toUpperCase()}`);
+    } else {
+      navigate(`/services/${toServiceSlug(query)}`);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearchClick();
+    }
+  };
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 pt-20 md:pt-32 pb-16 md:pb-24">
@@ -146,15 +174,35 @@ export default function HeroSection() {
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-orange-500 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-500 pointer-events-none"></div>
             <div className="relative bg-white dark:bg-slate-800 rounded-2xl p-1 md:p-2">
               <div className="flex flex-col md:flex-row gap-3 p-4 md:p-6">
-                <div className="flex-1">
+                <div className="flex-1 relative">
                   <label className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">
-                    Service Type
+                    Service Type or Pro ID
                   </label>
                   <input
                     type="text"
-                    placeholder="Plumbing, AC Repair, Cleaning..."
+                    placeholder="Plumbing, AC Repair, or JJ0001..."
+                    value={serviceType}
+                    onChange={(e) => setServiceType(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="w-full mt-2 text-base md:text-lg bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                   />
+                  
+                  {/* Search Type Hint */}
+                  {serviceType.trim() && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                      {isUserIdSearch(serviceType) ? (
+                        <>
+                          <User className="w-3 h-3 text-blue-500" />
+                          Professional ID
+                        </>
+                      ) : (
+                        <>
+                          <Briefcase className="w-3 h-3 text-orange-500" />
+                          Service Search
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="h-px md:h-auto md:w-px bg-slate-200 dark:bg-slate-600"></div>
@@ -172,10 +220,16 @@ export default function HeroSection() {
                   />
                 </div>
 
-                <button className="md:ml-4 px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap">
+                <motion.button
+                  onClick={handleSearchClick}
+                  disabled={!serviceType.trim()}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="md:ml-4 px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <Search size={20} />
                   <span className="hidden md:inline">Search</span>
-                </button>
+                </motion.button>
               </div>
             </div>
           </div>

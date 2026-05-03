@@ -1,18 +1,25 @@
 {
   "name": "jobjiffy-server",
   "version": "1.0.0",
-  "description": "Backend server for Jobjiffy marketplace",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "dev": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },
-  "keywords": ["jobjiffy", "marketplace", "services"],
-  "author": "",
-  "license": "ISC",
+  
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.2",
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.1.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
   }
 }

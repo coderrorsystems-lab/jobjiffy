@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   User, Phone, Mail, Lock, Briefcase, Award, DollarSign, MapPin, FileText,
   Upload, Landmark, Eye, EyeOff, ArrowRight, ArrowLeft, Loader, CheckCircle,
-  AlertCircle
+  AlertCircle, Plus, Trash2, Home
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWindowScroll } from '@/hooks';
@@ -11,10 +11,23 @@ import { registerProfessional } from '../../../services/serviceAPI';
 
 const STEPS = [
   { id: 1, title: 'Basic Info', description: 'Your contact details' },
-  { id: 2, title: 'Professional Details', description: 'Services you offer' },
-  { id: 3, title: 'Identity Verification', description: 'KYC Documents' },
-  { id: 4, title: 'Banking Details', description: 'Payment information' }
+  { id: 2, title: 'Address & Professional Details', description: 'Location and services' },
+  { id: 3, title: 'Services & Experience', description: 'Your offerings and background' },
+  { id: 4, title: 'Identity Verification', description: 'KYC Documents' },
+  { id: 5, title: 'Banking Details', description: 'Payment information' }
 ];
+
+const SERVICE_CATEGORIES = [
+  { value: 'cleaning', label: 'Home Cleaning' },
+  { value: 'beauty', label: 'Beauty & Grooming' },
+  { value: 'repair', label: 'Repair & Maintenance' },
+  { value: 'appliance', label: 'Appliance Repair' },
+  { value: 'personalcare', label: 'Personal Care' },
+  { value: 'other', label: 'Other' }
+];
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
 export default function ProfessionalRegister() {
   useWindowScroll(true);
@@ -27,31 +40,44 @@ export default function ProfessionalRegister() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
-    // Step 1
-    fullName: '',
-    mobileNumber: '',
+    // Step 1: Basic Info
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    // Step 2
-    category: '',
-    skills: '',
-    experience: '',
-    servicesOffered: [],
-    pricePerService: '',
-    serviceArea: '',
-    profileDescription: '',
-    profilePhoto: null,
-    // Step 3
-    aadharCard: null,
-    addressProof: null,
-    // Step 4
-    bankAccountNumber: '',
-    ifscCode: '',
-    accountHolderName: '',
-    upiId: ''
+    phone: '',
+    // Step 2: Address & Professional Category
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: ''
+    },
+    professionalDetails: {
+      category: '',
+      bio: '',
+      experience: '',
+      serviceArea: {
+        city: '',
+        radius: 10
+      },
+      kycDocuments: {
+        aadhar: null,
+        pan: null,
+        addressProof: null
+      },
+      bankDetails: {
+        accountNumber: '',
+        ifsc: '',
+        accountHolderName: '',
+        upiId: ''
+      }
+    }
   });
 
+  const [newService, setNewService] = useState({ name: '', description: '', price: '' });
+  const [services, setServices] = useState([]);
   const [previews, setPreviews] = useState({});
 
   const containerVariants = {
@@ -67,51 +93,167 @@ export default function ProfessionalRegister() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
   };
 
+  // Validation helpers
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  
+  const isValidPhone = (phone) => /^\+\d{1,3}\d{6,14}$/.test(phone.replace(/\s/g, ''));
+  
+  const isValidIFSC = (ifsc) => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc);
+  
+  const isValidAccountNumber = (acc) => /^\d{9,18}$/.test(acc);
+
   const handleChange = (e) => {
-    // Prevent any event bubbling
-    e.preventDefault?.();
-    
-    const { name, value, type, checked } = e.target;
-    if (type === 'checkbox') {
-      setFormData(prev => ({
-        ...prev,
-        servicesOffered: checked
-          ? [...prev.servicesOffered, value]
-          : prev.servicesOffered.filter(s => s !== value)
-      }));
-    } else if (type === 'file') {
-      // File input - don't update here
+    const { name, value } = e.target;
+
+    setFormData((prev) => {
+      const parts = name.split('.');
+      const updated = { ...prev };
+
+      if (parts.length === 1) {
+        updated[name] = value;
+        return updated;
+      }
+
+      let current = updated;
+
+      for (let i = 0; i < parts.length - 1; i++) {
+        current[parts[i]] = { ...current[parts[i]] };
+        current = current[parts[i]];
+      }
+
+      current[parts[parts.length - 1]] = value;
+      return updated;
+    });
+  };
+
+  const handleAddressChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      address: { ...prev.address, [name]: value }
+    }));
+  };
+
+  const handleProfessionalDetailsChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      professionalDetails: { ...prev.professionalDetails, [name]: value }
+    }));
+  };
+
+  const handleServiceAreaChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      professionalDetails: {
+        ...prev.professionalDetails,
+        serviceArea: { ...prev.professionalDetails.serviceArea, [name]: name === 'radius' ? Number(value) : value }
+      }
+    }));
+  };
+
+  const handleBankDetailsChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      professionalDetails: {
+        ...prev.professionalDetails,
+        bankDetails: { ...prev.professionalDetails.bankDetails, [name]: value }
+      }
+    }));
+  };
+
+  const handleAddService = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    if (!newService.name || !newService.description || !newService.price) {
+      setError('Please fill all service details');
       return;
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
     }
+    if (Number(newService.price) <= 0) {
+      setError('Price must be a positive number');
+      return;
+    }
+    setServices(prev => [...prev, { ...newService, price: Number(newService.price), id: Date.now() }]);
+    setNewService({ name: '', description: '', price: '' });
+    setError('');
+  };
+
+  const handleRemoveService = (e, index) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setServices(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleKeyDown = (e) => {
-    // Prevent form submission on Enter key in text inputs (except textarea)
     if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
       e.preventDefault();
     }
   };
 
-  const handleFileChange = (e, fieldName) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData(prev => ({ ...prev, [fieldName]: file }));
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviews(prev => ({ ...prev, [fieldName]: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    }
+  const validateFile = (file) => {
+    if (!file) return { valid: false, message: 'File is required' };
+    if (file.size > MAX_FILE_SIZE) return { valid: false, message: 'File size must be less than 5MB' };
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) return { valid: false, message: 'Only JPEG, PNG, WEBP, or PDF files are allowed' };
+    return { valid: true };
   };
 
+  const handleFileChange = (e, docType) => {
+    e.preventDefault?.();
+    e.stopPropagation?.();
+    
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      setError(validation.message);
+      return;
+    }
+
+    setError('');
+
+    // update formData with file
+    setFormData(prev => ({
+      ...prev,
+      professionalDetails: {
+        ...prev.professionalDetails,
+        kycDocuments: {
+          ...prev.professionalDetails.kycDocuments,
+          [docType]: file
+        }
+      }
+    }));
+
+    // update preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviews(prev => ({
+        ...prev,
+        [docType]: reader.result
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
   const validateStep = () => {
     setError('');
     
     if (currentStep === 1) {
-      if (!formData.fullName || !formData.mobileNumber || !formData.email || !formData.password) {
+      if (!formData.name || !formData.email || !formData.phone || !formData.password) {
         setError('Please fill all required fields');
+        return false;
+      }
+      if (formData.name.length < 2) {
+        setError('Name must be at least 2 characters');
+        return false;
+      }
+      if (!isValidEmail(formData.email)) {
+        setError('Please enter a valid email address');
+        return false;
+      }
+      if (!isValidPhone(formData.phone)) {
+        setError('Phone must be in E.164 format (e.g., +919999999999)');
         return false;
       }
       if (formData.password !== formData.confirmPassword) {
@@ -125,22 +267,53 @@ export default function ProfessionalRegister() {
     }
 
     if (currentStep === 2) {
-      if (!formData.category || !formData.experience || !formData.pricePerService || !formData.serviceArea) {
-        setError('Please fill all required fields');
+      const { address } = formData;
+      if (!address.street || !address.city || !address.state || !address.zipCode) {
+        setError('Please fill all address fields');
         return false;
       }
     }
 
     if (currentStep === 3) {
-      if (!formData.aadharCard || !formData.addressProof) {
-        setError('Please upload all required documents');
+      const { professionalDetails } = formData;
+      if (!professionalDetails.category || !professionalDetails.experience || !professionalDetails.bio || !professionalDetails.serviceArea.city) {
+        setError('Please fill all professional details');
+        return false;
+      }
+      if (services.length === 0) {
+        setError('Please add at least one service');
+        return false;
+      }
+      if (Number(professionalDetails.experience) < 0) {
+        setError('Experience must be a non-negative number');
+        return false;
+      }
+      if (professionalDetails.bio.length > 500) {
+        setError('Bio must be less than 500 characters');
         return false;
       }
     }
 
     if (currentStep === 4) {
-      if (!formData.bankAccountNumber || !formData.ifscCode || !formData.accountHolderName) {
-        setError('Please fill all required banking details');
+      const { kycDocuments } = formData.professionalDetails;
+      if (!kycDocuments.aadhar || !kycDocuments.addressProof) {
+        setError('Please upload all required KYC documents');
+        return false;
+      }
+    }
+
+    if (currentStep === 5) {
+      const { bankDetails } = formData.professionalDetails;
+      if (!bankDetails.accountNumber || !bankDetails.ifsc || !bankDetails.accountHolderName) {
+        setError('Please fill all banking details');
+        return false;
+      }
+      if (!isValidAccountNumber(bankDetails.accountNumber)) {
+        setError('Bank account number must be 9-18 digits');
+        return false;
+      }
+      if (!isValidIFSC(bankDetails.ifsc)) {
+        setError('IFSC code format is invalid (e.g., SBIN0000001)');
         return false;
       }
     }
@@ -151,11 +324,13 @@ export default function ProfessionalRegister() {
   const handleNext = () => {
     if (validateStep()) {
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+      setError('');
     }
   };
 
   const handlePrev = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
+    setError('');
   };
 
   const handleSubmit = async (e) => {
@@ -164,16 +339,48 @@ export default function ProfessionalRegister() {
 
     setLoading(true);
     try {
-      await registerProfessional({
-        fullName: formData.fullName,
-        email: formData.email,
-        category: formData.category,
-        experience: formData.experience,
-        servicesOffered: formData.servicesOffered,
-        pricePerService: formData.pricePerService,
-        serviceArea: formData.serviceArea,
-      });
-      navigate('/login');
+      const formDataToSubmit = new FormData();
+      
+      // Add basic info
+      formDataToSubmit.append('name', formData.name);
+      formDataToSubmit.append('email', formData.email);
+      formDataToSubmit.append('password', formData.password);
+      formDataToSubmit.append('phone', formData.phone);
+      
+      // Add address
+      formDataToSubmit.append('address', JSON.stringify(formData.address));
+      
+      // Add professional details
+      const professionalData = { 
+        ...formData.professionalDetails,
+        services: services.map(({ id, ...service }) => service) // Remove id before sending
+      };
+      formDataToSubmit.append('professionalDetails', JSON.stringify(professionalData));
+      
+      // Add files
+      if (formData.professionalDetails.kycDocuments.aadhar) {
+        formDataToSubmit.append('aadhar', formData.professionalDetails.kycDocuments.aadhar);
+      }
+      if (formData.professionalDetails.kycDocuments.pan) {
+        formDataToSubmit.append('pan', formData.professionalDetails.kycDocuments.pan);
+      }
+      if (formData.professionalDetails.kycDocuments.addressProof) {
+        formDataToSubmit.append('addressProof', formData.professionalDetails.kycDocuments.addressProof);
+      }
+
+      const response = await registerProfessional(formDataToSubmit);
+      
+      if (response?.user?.status === 'pending') {
+        // Show success message and redirect
+        navigate('/login', { 
+          state: { 
+            message: 'Registration successful! Your account is pending admin approval. You will be notified once verified.',
+            type: 'pending'
+          } 
+        });
+      } else {
+        navigate('/login');
+      }
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to register. Please try again.');
     } finally {
@@ -185,16 +392,18 @@ export default function ProfessionalRegister() {
   const Step1 = () => (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Full Name *</label>
         <div className="relative">
           <User className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
           <input
             type="text"
-            name="fullName"
-            value={formData.fullName}
+            name="name"
+            value={formData.name}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="John Doe"
+            minLength="2"
+            maxLength="100"
             className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:bg-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
             required
           />
@@ -202,24 +411,7 @@ export default function ProfessionalRegister() {
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Mobile Number</label>
-        <div className="relative">
-          <Phone className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
-          <input
-            type="tel"
-            name="mobileNumber"
-            value={formData.mobileNumber}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder="+91 98765 43210"
-            className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:bg-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
-            required
-          />
-        </div>
-      </motion.div>
-
-      <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Email Address *</label>
         <div className="relative">
           <Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
           <input
@@ -236,7 +428,25 @@ export default function ProfessionalRegister() {
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Phone Number (E.164) *</label>
+        <div className="relative">
+          <Phone className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
+          <input
+            type="tel"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="+919999999999"
+            className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:bg-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
+            required
+          />
+        </div>
+        <p className="text-xs text-slate-500 mt-1">Format: +[country code][number] (e.g., +919999999999)</p>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="group">
+        <label className="block text-sm font-medium text-slate-300 mb-2">Password (Min 8 chars) *</label>
         <div className="relative">
           <Lock className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
           <input
@@ -246,6 +456,7 @@ export default function ProfessionalRegister() {
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="••••••••"
+            minLength="8"
             className="w-full pl-12 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:bg-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
             required
           />
@@ -260,7 +471,7 @@ export default function ProfessionalRegister() {
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Confirm Password</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Confirm Password *</label>
         <div className="relative">
           <Lock className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
           <input
@@ -270,6 +481,7 @@ export default function ProfessionalRegister() {
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="••••••••"
+            minLength="8"
             className="w-full pl-12 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:bg-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
             required
           />
@@ -285,89 +497,135 @@ export default function ProfessionalRegister() {
     </motion.div>
   );
 
-  // Step 2: Professional Details
+  // Step 2: Address & Professional Category
   const Step2 = () => (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Service Category</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Street Address *</label>
+        <div className="relative">
+          <Home className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
+          <input
+            type="text"
+            name="street"
+            value={formData.address.street}
+            onChange={handleAddressChange}
+            onKeyDown={handleKeyDown}
+            placeholder="123 Main Street"
+            className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
+            required
+          />
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+        <div className="group">
+          <label className="block text-sm font-medium text-slate-300 mb-2">City *</label>
+          <div className="relative">
+            <MapPin className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
+            <input
+              type="text"
+              name="city"
+              value={formData.address.city}
+              onChange={handleAddressChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Delhi"
+              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
+              required
+            />
+          </div>
+        </div>
+        <div className="group">
+          <label className="block text-sm font-medium text-slate-300 mb-2">State *</label>
+          <input
+            type="text"
+            name="state"
+            value={formData.address.state}
+            onChange={handleAddressChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Delhi"
+            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
+            required
+          />
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+        <div className="group">
+          <label className="block text-sm font-medium text-slate-300 mb-2">ZIP Code *</label>
+          <input
+            type="text"
+            name="zipCode"
+            value={formData.address.zipCode}
+            onChange={handleAddressChange}
+            onKeyDown={handleKeyDown}
+            placeholder="110001"
+            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
+            required
+          />
+        </div>
+        <div className="group">
+          <label className="block text-sm font-medium text-slate-300 mb-2">Country</label>
+          <input
+            type="text"
+            name="country"
+            value={formData.address.country}
+            onChange={handleAddressChange}
+            onKeyDown={handleKeyDown}
+            placeholder="India"
+            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
+          />
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="group">
+        <label className="block text-sm font-medium text-slate-300 mb-2">Service Category *</label>
         <select
           name="category"
-          value={formData.category}
-          onChange={handleChange}
+          value={formData.professionalDetails.category}
+          onChange={handleProfessionalDetailsChange}
           className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
           required
         >
           <option value="" className="bg-slate-900 text-white">Select a category</option>
-          <option value="ac_repair" className="bg-slate-900 text-white">AC Repair & Service</option>
-          <option value="plumbing" className="bg-slate-900 text-white">Plumbing</option>
-          <option value="electrical" className="bg-slate-900 text-white">Electrical</option>
-          <option value="beauty" className="bg-slate-900 text-white">Beauty & Grooming</option>
-          <option value="cleaning" className="bg-slate-900 text-white">Home Cleaning</option>
-          <option value="carpentry" className="bg-slate-900 text-white">Carpentry</option>
-          <option value="appliance" className="bg-slate-900 text-white">Appliance Repair</option>
+          {SERVICE_CATEGORIES.map(cat => (
+            <option key={cat.value} value={cat.value} className="bg-slate-900 text-white">
+              {cat.label}
+            </option>
+          ))}
         </select>
       </motion.div>
+    </motion.div>
+  );
 
+  // Step 3: Services & Experience
+  const Step3 = () => (
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Experience (in years)</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Years of Experience *</label>
         <input
           type="number"
           name="experience"
-          value={formData.experience}
-          onChange={handleChange}
+          value={formData.professionalDetails.experience}
+          onChange={handleProfessionalDetailsChange}
           onKeyDown={handleKeyDown}
           placeholder="5"
+          min="0"
           className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
           required
         />
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Services Offered (Select all)</label>
-        <div className="space-y-2">
-          {['Basic Service', 'Premium Service', 'Installation', 'Repair & Maintenance'].map(service => (
-            <label key={service} className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                value={service}
-                checked={formData.servicesOffered.includes(service)}
-                onChange={handleChange}
-                className="w-4 h-4 rounded border-slate-600 text-cyan-500 focus:ring-cyan-500 bg-slate-800"
-              />
-              <span className="text-slate-300">{service}</span>
-            </label>
-          ))}
-        </div>
-      </motion.div>
-
-      <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Starting Price (₹)</label>
-        <div className="relative">
-          <DollarSign className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
-          <input
-            type="number"
-            name="pricePerService"
-            value={formData.pricePerService}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder="500"
-            className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
-            required
-          />
-        </div>
-      </motion.div>
-
-      <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Service Area (City/Locality)</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Service Area City *</label>
         <div className="relative">
           <MapPin className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
           <input
             type="text"
-            name="serviceArea"
-            value={formData.serviceArea}
-            onChange={handleChange}
+            name="city"
+            value={formData.professionalDetails.serviceArea.city}
+            onChange={handleServiceAreaChange}
             onKeyDown={handleKeyDown}
-            placeholder="Delhi - South Delhi"
+            placeholder="Delhi"
             className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
             required
           />
@@ -375,130 +633,256 @@ export default function ProfessionalRegister() {
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Profile Description (Bio)</label>
-        <textarea
-          name="profileDescription"
-          value={formData.profileDescription}
-          onChange={handleChange}
-          placeholder="Tell us about your experience and expertise..."
-          rows="4"
-          className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all resize-none"
+        <label className="block text-sm font-medium text-slate-300 mb-2">Service Radius (km)</label>
+        <input
+          type="number"
+          name="radius"
+          value={formData.professionalDetails.serviceArea.radius}
+          onChange={handleServiceAreaChange}
+          onKeyDown={handleKeyDown}
+          placeholder="10"
+          min="1"
+          className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
         />
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Profile Photo</label>
-        <label className="flex flex-col items-center justify-center w-full px-4 py-6 bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors">
-          <div className="flex flex-col items-center justify-center">
-            {previews.profilePhoto ? (
-              <>
-                <img src={previews.profilePhoto} alt="Preview" className="w-16 h-16 rounded-lg object-cover mb-2" />
-                <p className="text-sm text-cyan-400 font-medium">Click to change</p>
-              </>
-            ) : (
-              <>
-                <Upload className="w-8 h-8 text-slate-500 mb-2" />
-                <p className="text-sm text-slate-400">Click to upload photo</p>
-              </>
-            )}
-          </div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => handleFileChange(e, 'profilePhoto')}
-            className="hidden"
-          />
-        </label>
-      </motion.div>
-    </motion.div>
-  );
-
-  // Step 3: KYC Documents
-  const Step3 = () => (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
-      <motion.div variants={itemVariants} className="bg-blue-900/30 border border-blue-800 rounded-lg p-3 flex gap-3">
-        <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-blue-300">Upload clear photos of your documents for verification</p>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Bio (Max 500 chars) *</label>
+        <textarea
+          name="bio"
+          value={formData.professionalDetails.bio}
+          onChange={handleProfessionalDetailsChange}
+          placeholder="Tell us about your experience and expertise..."
+          rows="4"
+          maxLength="500"
+          className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all resize-none"
+          required
+        />
+        <p className="text-xs text-slate-500 mt-1">{formData.professionalDetails.bio.length}/500</p>
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Aadhar Card / PAN Card *</label>
-        <label className="flex flex-col items-center justify-center w-full px-4 py-6 bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors">
-          <div className="flex flex-col items-center justify-center">
-            {previews.aadharCard ? (
-              <>
-                <img src={previews.aadharCard} alt="Preview" className="w-20 h-12 rounded object-cover mb-2" />
-                <p className="text-sm text-cyan-400 font-medium">Click to change</p>
-              </>
-            ) : (
-              <>
-                <Upload className="w-8 h-8 text-slate-500 mb-2" />
-                <p className="text-sm text-slate-400">Upload Aadhar or PAN Card</p>
-              </>
-            )}
+        <label className="block text-sm font-medium text-slate-300 mb-2">Add Services *</label>
+        <div className="space-y-3 bg-slate-800 border border-slate-700 rounded-xl p-4">
+          <div className="space-y-2">
+            <input
+              type="text"
+              placeholder="Service name"
+              maxLength="100"
+              value={newService.name}
+              onChange={(e) => setNewService(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+            />
+            <textarea
+              placeholder="Service description"
+              maxLength="300"
+              value={newService.description}
+              onChange={(e) => setNewService(prev => ({ ...prev, description: e.target.value }))}
+              rows="2"
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 resize-none"
+            />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <input
+                  type="number"
+                  placeholder="Price"
+                  min="0"
+                  step="0.01"
+                  value={newService.price}
+                  onChange={(e) => setNewService(prev => ({ ...prev, price: e.target.value }))}
+                  className="w-full pl-8 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAddService(e);
+                }}
+                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-white font-medium flex items-center gap-2 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add
+              </button>
+            </div>
           </div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => handleFileChange(e, 'aadharCard')}
-            className="hidden"
-            required
-          />
-        </label>
-      </motion.div>
 
-      <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Address Proof *</label>
-        <label className="flex flex-col items-center justify-center w-full px-4 py-6 bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors">
-          <div className="flex flex-col items-center justify-center">
-            {previews.addressProof ? (
-              <>
-                <img src={previews.addressProof} alt="Preview" className="w-20 h-12 rounded object-cover mb-2" />
-                <p className="text-sm text-cyan-400 font-medium">Click to change</p>
-              </>
-            ) : (
-              <>
-                <Upload className="w-8 h-8 text-slate-500 mb-2" />
-                <p className="text-sm text-slate-400">Upload Address Proof</p>
-              </>
-            )}
-          </div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => handleFileChange(e, 'addressProof')}
-            className="hidden"
-            required
-          />
-        </label>
-      </motion.div>
-
-      <motion.div variants={itemVariants} className="bg-amber-900/30 border border-amber-800 rounded-lg p-3 flex gap-3">
-        <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-amber-300">Admin approval required. You'll be notified once verified.</p>
+          {services.length > 0 && (
+            <div className="border-t border-slate-600 pt-3 space-y-2">
+              {services.map((service, index) => (
+                <motion.div
+                  key={service.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="bg-slate-700 p-3 rounded-lg flex justify-between items-start gap-3"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-white">{service.name}</p>
+                    <p className="text-sm text-slate-400 line-clamp-1">{service.description}</p>
+                    <p className="text-cyan-400 font-semibold text-sm">₹ {service.price}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRemoveService(e, index);
+                    }}
+                    className="p-2 hover:bg-red-600/30 rounded-lg text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mt-2">
+          Services added: {services.length}
+        </p>
       </motion.div>
     </motion.div>
   );
+const Step4 = () => (
+  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
+    
+    <motion.div variants={itemVariants} className="bg-blue-900/30 border border-blue-800 rounded-lg p-3 flex gap-3">
+      <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+      <p className="text-sm text-blue-300">
+        Upload clear photos of your documents for verification. File size: max 5MB
+      </p>
+    </motion.div>
 
-  // Step 4: Banking Details
-  const Step4 = () => (
+    {/* AADHAR / PAN */}
+    <motion.div variants={itemVariants} className="group">
+      <label className="block text-sm font-medium text-slate-300 mb-2">
+        Aadhar / PAN Card *
+      </label>
+
+      <label className="flex flex-col items-center justify-center w-full px-4 py-6 bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors">
+        <div className="flex flex-col items-center justify-center">
+
+          {previews.aadhar ? (
+            <>
+              <img src={previews.aadhar} alt="Preview" className="w-20 h-12 rounded object-cover mb-2" />
+              <p className="text-sm text-cyan-400 font-medium">Click to change</p>
+            </>
+          ) : (
+            <>
+              <Upload className="w-8 h-8 text-slate-500 mb-2" />
+              <p className="text-sm text-slate-400">Upload Aadhar or PAN Card</p>
+            </>
+          )}
+
+        </div>
+
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          onChange={(e) => handleFileChange(e, 'aadhar')}
+          className="hidden"
+          required
+        />
+      </label>
+    </motion.div>
+
+    {/* PAN (optional) */}
+    <motion.div variants={itemVariants} className="group">
+      <label className="block text-sm font-medium text-slate-300 mb-2">
+        PAN Card (Optional)
+      </label>
+
+      <label className="flex flex-col items-center justify-center w-full px-4 py-6 bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors">
+        <div className="flex flex-col items-center justify-center">
+
+          {previews.pan ? (
+            <>
+              <img src={previews.pan} alt="Preview" className="w-20 h-12 rounded object-cover mb-2" />
+              <p className="text-sm text-cyan-400 font-medium">Click to change</p>
+            </>
+          ) : (
+            <>
+              <Upload className="w-8 h-8 text-slate-500 mb-2" />
+              <p className="text-sm text-slate-400">Upload PAN Card (Optional)</p>
+            </>
+          )}
+
+        </div>
+
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          onChange={(e) => handleFileChange(e, 'pan')}
+          className="hidden"
+        />
+      </label>
+    </motion.div>
+
+    {/* ADDRESS PROOF */}
+    <motion.div variants={itemVariants} className="group">
+      <label className="block text-sm font-medium text-slate-300 mb-2">
+        Address Proof *
+      </label>
+
+      <label className="flex flex-col items-center justify-center w-full px-4 py-6 bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors">
+        <div className="flex flex-col items-center justify-center">
+
+          {previews.addressProof ? (
+            <>
+              <img src={previews.addressProof} alt="Preview" className="w-20 h-12 rounded object-cover mb-2" />
+              <p className="text-sm text-cyan-400 font-medium">Click to change</p>
+            </>
+          ) : (
+            <>
+              <Upload className="w-8 h-8 text-slate-500 mb-2" />
+              <p className="text-sm text-slate-400">
+                Upload Address Proof (Utility Bill, Rental Agreement, etc.)
+              </p>
+            </>
+          )}
+
+        </div>
+
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          onChange={(e) => handleFileChange(e, 'addressProof')}
+          className="hidden"
+          required
+        />
+      </label>
+    </motion.div>
+
+    <motion.div variants={itemVariants} className="bg-amber-900/30 border border-amber-800 rounded-lg p-3 flex gap-3">
+      <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+      <p className="text-sm text-amber-300">
+        Admin verification required. You'll receive status updates via email.
+      </p>
+    </motion.div>
+
+  </motion.div>
+);
+  // Step 5: Banking Details
+  const Step5 = () => (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
       <motion.div variants={itemVariants} className="bg-green-900/30 border border-green-800 rounded-lg p-3 flex gap-3">
         <AlertCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-green-300">Your banking details are encrypted and secure</p>
+        <p className="text-sm text-green-300">Your banking details are encrypted and stored securely</p>
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Bank Account Number</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Bank Account Number (9-18 digits) *</label>
         <div className="relative">
           <Landmark className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
           <input
             type="text"
-            name="bankAccountNumber"
-            value={formData.bankAccountNumber}
-            onChange={handleChange}
+            name="accountNumber"
+            value={formData.professionalDetails.bankDetails.accountNumber}
+            onChange={handleBankDetailsChange}
             onKeyDown={handleKeyDown}
-            placeholder="1234567890"
+            placeholder="Enter account number"
             className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
             required
           />
@@ -506,28 +890,30 @@ export default function ProfessionalRegister() {
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">IFSC Code</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">IFSC Code (Format: SBIN0000001) *</label>
         <input
           type="text"
-          name="ifscCode"
-          value={formData.ifscCode}
-          onChange={handleChange}
+          name="ifsc"
+          value={formData.professionalDetails.bankDetails.ifsc}
+          onChange={handleBankDetailsChange}
           onKeyDown={handleKeyDown}
           placeholder="SBIN0000001"
-          className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
+          maxLength="11"
+          className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all uppercase"
           required
         />
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Account Holder Name</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Account Holder Name *</label>
         <input
           type="text"
           name="accountHolderName"
-          value={formData.accountHolderName}
-          onChange={handleChange}
+          value={formData.professionalDetails.bankDetails.accountHolderName}
+          onChange={handleBankDetailsChange}
           onKeyDown={handleKeyDown}
           placeholder="John Doe"
+          maxLength="100"
           className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
           required
         />
@@ -538,18 +924,26 @@ export default function ProfessionalRegister() {
         <input
           type="text"
           name="upiId"
-          value={formData.upiId}
-          onChange={handleChange}
+          value={formData.professionalDetails.bankDetails.upiId}
+          onChange={handleBankDetailsChange}
           onKeyDown={handleKeyDown}
-          placeholder="john@upi"
+          placeholder="john.doe@okhdfcbank"
           className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
         />
+        <p className="text-xs text-slate-500 mt-1">Format: username@bankname (optional)</p>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="bg-blue-900/30 border border-blue-800 rounded-lg p-3 flex gap-3">
+        <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-blue-300">Please review all information before submitting. Ensure bank account details are accurate.</p>
       </motion.div>
     </motion.div>
   );
 
-  const steps = [Step1, Step2, Step3, Step4];
-  const CurrentStep = steps[currentStep - 1];
+  const steps = [Step1, Step2, Step3, Step4, Step5];
+  // Call the step function to return JSX instead of rendering it as a component
+  // This avoids changing component identity and prevents remounts which cause focus loss
+  const renderCurrentStep = () => steps[currentStep - 1]();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center px-4 py-8">
@@ -602,24 +996,26 @@ export default function ProfessionalRegister() {
           </div>
         </motion.div>
 
-        {/* Step Content - Wrapped in div to prevent form submission on Enter */}
-        <div
+        {/* Step Content - Wrapped in form to prevent default submission */}
+        <form
           className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8"
-          onKeyDown={(e) => {
-            // Prevent any form submission behavior completely
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              e.stopPropagation();
-              // Return false to make sure nothing else happens
-              return false;
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (currentStep === STEPS.length) {
+              handleSubmit(e);
             }
+            return false;
           }}
-          onKeyPress={(e) => {
-            // Also handle keypress
-            if (e.key === 'Enter') {
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
               e.preventDefault();
               e.stopPropagation();
-              return false;
+              if (currentStep === STEPS.length) {
+                handleSubmit(e);
+              } else {
+                handleNext();
+              }
             }
           }}
         >
@@ -628,7 +1024,7 @@ export default function ProfessionalRegister() {
             <p className="text-sm text-slate-400">{STEPS[currentStep - 1].description}</p>
           </div>
 
-          <CurrentStep />
+          {renderCurrentStep()}
 
           {/* Error Message */}
           {error && (
@@ -646,7 +1042,11 @@ export default function ProfessionalRegister() {
             {currentStep > 1 && (
               <button
                 type="button"
-                onClick={handlePrev}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handlePrev();
+                }}
                 className="flex-1 py-3 px-4 rounded-xl font-semibold text-slate-300 border-2 border-slate-700 hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -654,8 +1054,14 @@ export default function ProfessionalRegister() {
               </button>
             )}
             <motion.button
-              type="button"
-              onClick={currentStep === STEPS.length ? handleSubmit : handleNext}
+              type={currentStep === STEPS.length ? 'submit' : 'button'}
+              onClick={(e) => {
+                if (currentStep !== STEPS.length) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleNext();
+                }
+              }}
               disabled={loading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -664,7 +1070,7 @@ export default function ProfessionalRegister() {
               {loading ? (
                 <>
                   <Loader className="w-5 h-5 animate-spin" />
-                  {currentStep === STEPS.length ? 'Submitting...' : 'Loading...'}
+                  {currentStep === STEPS.length ? 'Submitting...' : 'Processing...'}
                 </>
               ) : (
                 <>
@@ -674,7 +1080,7 @@ export default function ProfessionalRegister() {
               )}
             </motion.button>
           </div>
-        </div>
+        </form>
 
         {/* Footer */}
         <motion.p

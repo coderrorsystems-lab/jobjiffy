@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles, User, Briefcase } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchServices } from '../../services/serviceAPI';
@@ -24,14 +24,14 @@ const itemVariants = {
 };
 
 const defaultPopularServices = [
-  { id: 'default-1', icon: '🔧', name: 'AC Repair & Service', count: '2.5K+' },
-  { id: 'default-2', icon: '🚿', name: 'Plumbing', count: '3.2K+' },
-  { id: 'default-3', icon: '🧹', name: 'Home Cleaning', count: '4.8K+' },
-  { id: 'default-4', icon: '💇', name: 'Beauty & Salon', count: '5.1K+' },
-  { id: 'default-5', icon: '📱', name: 'Electronics Repair', count: '1.9K+' },
-  { id: 'default-6', icon: '🏠', name: 'Painting', count: '2.3K+' },
-  { id: 'default-7', icon: '⚡', name: 'Electrical', count: '2.7K+' },
-  { id: 'default-8', icon: '🛏️', name: 'Furniture Repair', count: '1.4K+' },
+  { id: 'default-1', icon: '🎨', name: 'Logo Design', count: '1.8K+' },
+  { id: 'default-2', icon: '📊', name: 'Poster/Banner Design', count: '2.1K+' },
+  { id: 'default-3', icon: '✍️', name: 'Assignment Writing', count: '3.5K+' },
+  { id: 'default-4', icon: '📸', name: 'Photo Editing', count: '2.9K+' },
+  { id: 'default-5', icon: '📄', name: 'PDF Editing & Conversion', count: '1.6K+' },
+  { id: 'default-6', icon: '📝', name: 'Notes Making', count: '4.2K+' },
+  { id: 'default-7', icon: '🔬', name: 'Lab File Completion', count: '2.4K+' },
+  { id: 'default-8', icon: '🎬', name: 'Thumbnail Design', count: '1.9K+' },
 ];
 
 export default function ServiceSearch() {
@@ -50,6 +50,28 @@ export default function ServiceSearch() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
+
+  const isUserIdSearch = (query) => /^JJ\d{4}$/i.test(query.trim());
+
+  const searchProfessionalByUserId = async (userId) => {
+    try {
+      // This will need backend endpoint: GET /api/professionals/search?userId=JJ0001
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/professionals/search?userId=${userId.toUpperCase()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error('Professional not found');
+      const data = await response.json();
+      return data.data || data;
+    } catch (err) {
+      console.error('Error searching professional:', err);
+      return null;
+    }
+  };
 
   const loadPopularServices = async ({ query = '', limit = 8 } = {}) => {
     setLoading(true);
@@ -95,8 +117,23 @@ export default function ServiceSearch() {
     const timeoutId = setTimeout(async () => {
       setSearchLoading(true);
       try {
-        const result = await fetchServices({ query, limit: 6 });
-        setSuggestions(result?.data || []);
+        // Check if searching by user ID
+        if (isUserIdSearch(query)) {
+          const professional = await searchProfessionalByUserId(query);
+          if (professional) {
+            setSuggestions([{ ...professional, type: 'professional' }]);
+          } else {
+            setSuggestions([]);
+          }
+        } else {
+          // Search by service name
+          const result = await fetchServices({ query, limit: 6 });
+          const servicesData = (result?.data || []).map(service => ({
+            ...service,
+            type: 'service'
+          }));
+          setSuggestions(servicesData);
+        }
       } catch (err) {
         setSuggestions([]);
       } finally {
@@ -141,7 +178,7 @@ export default function ServiceSearch() {
               />
               <input
                 type="text"
-                placeholder="Search for services, professionals, or anything..."
+                placeholder="Search services, or find professionals (e.g., JJ0001)..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 onKeyDown={(e) => {
@@ -165,31 +202,72 @@ export default function ServiceSearch() {
                 {searchLoading ? (
                   <div className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">Searching...</div>
                 ) : (
-                  suggestions.map((service) => (
+                  suggestions.map((item) => (
                     <motion.button
-                      key={service.id}
+                      key={item.id || item._id}
                       type="button"
                       onClick={() => {
-                        navigate(`/services/${toServiceSlug(service.name)}`);
+                        if (item.type === 'professional') {
+                          navigate(`/professional/${item.userId || item._id}`);
+                        } else {
+                          navigate(`/services/${toServiceSlug(item.name)}`);
+                        }
                       }}
                       className="w-full px-5 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
                       whileHover={{ x: 4 }}
                     >
-                      <span className="text-xl">{service.icon || '🛠'}</span>
-                      <div className="flex-1">
-                        <div className="font-semibold text-slate-900 dark:text-white">
-                          {service.name}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          {service.count} professionals
-                        </div>
-                      </div>
+                      {item.type === 'professional' ? (
+                        <>
+                          <User className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="font-semibold text-slate-900 dark:text-white">
+                              {item.userId || item.id}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {item.fullName || 'Professional'} • {item.serviceName || 'Service Professional'}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xl">{item.icon || '🛠'}</span>
+                          <div className="flex-1">
+                            <div className="font-semibold text-slate-900 dark:text-white">
+                              {item.name}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {item.count} professionals
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </motion.button>
                   ))
                 )}
               </motion.div>
             )}
           </div>
+
+          {/* Search Hint */}
+          {searchQuery.trim() && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-2"
+            >
+              {isUserIdSearch(searchQuery) ? (
+                <>
+                  <User className="w-3.5 h-3.5 text-blue-500" />
+                  Searching for professional ID
+                </>
+              ) : (
+                <>
+                  <Briefcase className="w-3.5 h-3.5 text-orange-500" />
+                  Searching for services or use format: JJ0001-JJ9999
+                </>
+              )}
+            </motion.div>
+          )}
         </motion.div>
 
         {error && (

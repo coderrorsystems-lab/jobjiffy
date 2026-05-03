@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { professionals as dummyProfessionals } from '../../data/professionals';
+import { professionals as dummyProfessionals } from '../data/professionals';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -23,28 +23,22 @@ const categoryVariants = {
   },
 };
 
-
-export default function CategoriesSection() {
+export default function AllProfessionals() {
   const navigate = useNavigate();
   const [professionals, setProfessionals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
-  // Fetch professionals on component mount (only first 10)
+  // Fetch professionals on component mount
   useEffect(() => {
-    fetchTopProfessionals();
+    fetchProfessionals(1);
   }, []);
 
-  const toServiceSlug = (serviceName) =>
-    String(serviceName || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-
-  // Fetch top-rated professionals (using dummy data - only first 10)
-  const fetchTopProfessionals = async () => {
+  // Fetch professionals (using dummy data)
+  const fetchProfessionals = async (page = 1) => {
     setLoading(true);
     setError('');
     
@@ -52,8 +46,14 @@ export default function CategoriesSection() {
     await new Promise(resolve => setTimeout(resolve, 300));
     
     try {
-      const firstTen = dummyProfessionals.slice(0, 10);
-      setProfessionals(firstTen);
+      const startIndex = (page - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedData = dummyProfessionals.slice(startIndex, endIndex);
+      
+      setProfessionals(paginatedData);
+      setTotalPages(Math.ceil(dummyProfessionals.length / itemsPerPage));
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('Error loading professionals:', err);
       setError('Failed to load professionals. Please try again.');
@@ -63,36 +63,52 @@ export default function CategoriesSection() {
     }
   };
 
-  const handleExploreAll = () => {
-    navigate('/professionals');
+  const handleNextPage = async () => {
+    if (currentPage < totalPages) {
+      await fetchProfessionals(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = async () => {
+    if (currentPage > 1) {
+      await fetchProfessionals(currentPage - 1);
+    }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4">
-      <motion.div
-        className="space-y-12"
-        variants={containerVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-100px' }}
-      >
-        {/* Header */}
-        <motion.div className="text-center" variants={categoryVariants}>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">
-            Top Rated Professionals
-          </h2>
-          <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Discover our most highly-rated professionals across all services
-          </p>
-        </motion.div>
+    <div className="dark relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      {/* Background gradient effects */}
+      <div className="pointer-events-none absolute inset-0 opacity-40">
+        <div className="absolute -top-24 -left-24 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="absolute top-1/3 -right-24 h-96 w-96 rounded-full bg-cyan-500/15 blur-3xl" />
+        <div className="absolute -bottom-28 left-1/3 h-80 w-80 rounded-full bg-orange-500/15 blur-3xl" />
+      </div>
 
-        {error && (
-          <motion.div className="max-w-2xl mx-auto text-sm text-red-300 bg-red-900/30 border border-red-600/30 rounded-lg px-4 py-3" variants={categoryVariants}>
-            {error}
+      <div className="max-w-7xl mx-auto px-4 relative z-10 py-12">
+        <motion.div
+          className="space-y-12"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+        >
+          {/* Header */}
+          <motion.div className="text-center" variants={categoryVariants}>
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              All Professionals
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg">
+              Browse our complete directory of highly-rated professionals
+            </p>
           </motion.div>
-        )}
 
-        {/* Professionals Grid */}
+          {error && (
+            <motion.div className="max-w-2xl mx-auto text-sm text-red-300 bg-red-900/30 border border-red-600/30 rounded-lg px-4 py-3" variants={categoryVariants}>
+              {error}
+            </motion.div>
+          )}
+
+          {/* Professionals Grid */}
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             variants={containerVariants}
@@ -179,27 +195,51 @@ export default function CategoriesSection() {
             )}
           </motion.div>
 
-        {/* Pagination Controls */}
-        {/* Removed - no pagination on home */}
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <motion.div className="flex justify-center items-center gap-6" variants={categoryVariants}>
+              <motion.button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1 || loading}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 rounded-lg bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Previous
+              </motion.button>
 
-        {/* Action Button */}
-        <motion.div className="flex justify-center" variants={categoryVariants}>
-          <motion.button
-            onClick={() => navigate('/professionals')}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold transition-all duration-300 hover:shadow-lg active:scale-95 group"
-          >
-            Show All Professionals
-            <ArrowRight
-              size={20}
-              className="group-hover:translate-x-1 transition-transform duration-300"
-            />
-          </motion.button>
+              <div className="flex items-center gap-2 min-w-[140px] justify-center">
+                <span className="text-white font-semibold text-lg">
+                  Page {currentPage} of {totalPages}
+                </span>
+              </div>
+
+              <motion.button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages || loading}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </motion.button>
+            </motion.div>
+          )}
+
+          {/* Back Button */}
+          <motion.div className="flex justify-center" variants={categoryVariants}>
+            <motion.button
+              onClick={() => navigate('/')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold transition-all duration-300 hover:shadow-lg"
+            >
+              Back to Home
+              <ArrowRight size={20} />
+            </motion.button>
+          </motion.div>
         </motion.div>
-
-
-      </motion.div>
+      </div>
     </div>
   );
 }

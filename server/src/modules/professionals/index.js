@@ -1,7 +1,3 @@
-import servicesRouter from './services.routes.js';
-import professionalsRouter from './professionals.routes.js';
-
-export {
-	servicesRouter,
-	professionalsRouter,
-};
+// Professionals Module
+// This folder contains professional/provider management logic
+// Files: routes.js, controller.js, model.js, service.js

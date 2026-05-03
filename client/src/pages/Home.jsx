@@ -41,9 +41,9 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <motion.section variants={itemVariants} className="relative z-10">
+      {/* <motion.section variants={itemVariants} className="relative z-10">
         <HeroSection />
-      </motion.section>
+      </motion.section> */}
 
       {/* Service Search */}
       <motion.section variants={itemVariants} className="relative z-10 py-8 px-4 md:py-12 bg-gradient-to-b from-slate-900/60 to-transparent">

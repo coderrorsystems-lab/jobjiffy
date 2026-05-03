@@ -61,15 +61,15 @@ export default function About() {
           >
             <div className="space-y-4">
               <div className="flex items-start gap-4">
-                <div className="text-3xl font-bold text-cyan-400">10K+</div>
+                <div className="text-3xl font-bold text-cyan-400">1K+</div>
                 <div className="text-slate-300">Professional Service Providers</div>
               </div>
               <div className="flex items-start gap-4">
-                <div className="text-3xl font-bold text-blue-400">50K+</div>
+                <div className="text-3xl font-bold text-blue-400">5K+</div>
                 <div className="text-slate-300">Happy Customers</div>
               </div>
               <div className="flex items-start gap-4">
-                <div className="text-3xl font-bold text-cyan-400">100K+</div>
+                <div className="text-3xl font-bold text-cyan-400">10K+</div>
                 <div className="text-slate-300">Services Completed</div>
               </div>
             </div>
