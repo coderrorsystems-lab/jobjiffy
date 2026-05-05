@@ -1,6 +1,21 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config/index.js';
-import User from '../modules/auth/model.js';
+import User from '../modules/users/User.js';
+import Professional from '../modules/professionals/Professional.js';
+import Admin from '../modules/admin/Admin.js';
+
+const getModelByRole = (role) => {
+  switch (role) {
+    case 'user':
+      return User;
+    case 'professional':
+      return Professional;
+    case 'admin':
+      return Admin;
+    default:
+      return null;
+  }
+};
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -13,7 +28,12 @@ export const authenticate = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, config.jwt.secret);
 
-    const user = await User.findById(decoded.userId);
+    const Model = getModelByRole(decoded.role);
+    if (!Model) {
+      return res.status(401).json({ message: 'Invalid role in token' });
+    }
+
+    const user = await Model.findById(decoded.userId);
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'User not found or inactive' });
     }
@@ -21,7 +41,8 @@ export const authenticate = async (req, res, next) => {
     req.user = {
       userId: user._id,
       email: user.email,
-      role: user.role
+      role: decoded.role,
+      model: decoded.model
     };
 
     next();
@@ -63,13 +84,17 @@ export const optionalAuth = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, config.jwt.secret);
 
-    const user = await User.findById(decoded.userId);
-    if (user && user.isActive) {
-      req.user = {
-        userId: user._id,
-        email: user.email,
-        role: user.role
-      };
+    const Model = getModelByRole(decoded.role);
+    if (Model) {
+      const user = await Model.findById(decoded.userId);
+      if (user && user.isActive) {
+        req.user = {
+          userId: user._id,
+          email: user.email,
+          role: decoded.role,
+          model: decoded.model
+        };
+      }
     }
 
     next();

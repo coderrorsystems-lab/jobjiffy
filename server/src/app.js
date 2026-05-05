@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import authRoutes from './modules/auth/routes.js';
+import authRoutes from './modules/auth/authRoutes.js';
+import userRoutes from './modules/users/userRoutes.js';
+import professionalRoutes from './modules/professionals/professionalRoutes.js';
+import adminRoutes from './modules/admin/adminRoutes.js';
 
 const app = express();
 
@@ -30,7 +33,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Auth routes
 app.use('/api/auth', authRoutes);
+
+// User routes
+app.use('/api/users', userRoutes);
+
+// Professional routes
+app.use('/api/professionals', professionalRoutes);
+
+// Admin routes
+app.use('/api/admin', adminRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
