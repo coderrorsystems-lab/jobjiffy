@@ -4,6 +4,7 @@ import User from '../users/User.js';
 import Professional from '../professionals/Professional.js';
 import Admin from '../admin/Admin.js';
 import { config } from '../../config/index.js';
+import { verifyOTP } from '../../utils/otp.js';
 
 export const generateTokens = (user, role, model) => {
   const accessToken = jwt.sign(
@@ -239,4 +240,40 @@ export const getAdminCredentials = () => {
     email: config.admin.email,
     password: config.admin.password
   };
+};
+
+// ==================== EMAIL OTP VERIFICATION ====================
+
+export const verifyEmailOTP = async (email, otp, model) => {
+  const otpResult = verifyOTP(email, otp);
+  if (!otpResult.valid) {
+    throw new Error(otpResult.error);
+  }
+
+  let Model;
+  switch (model) {
+    case 'User':
+      Model = User;
+      break;
+    case 'Professional':
+      Model = Professional;
+      break;
+    case 'Admin':
+      Model = Admin;
+      break;
+    default:
+      throw new Error('Invalid model');
+  }
+
+  const user = await Model.findOneAndUpdate(
+    { email },
+    { isEmailVerified: true },
+    { new: true }
+  );
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return { isEmailVerified: user.isEmailVerified };
 };

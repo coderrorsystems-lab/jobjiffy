@@ -1,4 +1,5 @@
 import * as authService from './authService.js';
+import { generateOTP, storeOTP, sendOTPEmail } from '../../utils/otp.js';
 
 // ==================== USER ====================
 
@@ -95,6 +96,42 @@ export const refreshToken = async (req, res, next) => {
     res.json({
       message: 'Token refreshed successfully',
       ...tokens
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==================== EMAIL OTP VERIFICATION ====================
+
+export const sendOtp = async (req, res, next) => {
+  try {
+    const email = req.user.email;
+    const role = req.user.role;
+
+    const otp = generateOTP();
+    storeOTP(email, otp);
+    await sendOTPEmail(email, otp);
+
+    res.json({ 
+      message: 'OTP sent to your email',
+      role
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyOtp = async (req, res, next) => {
+  try {
+    const email = req.user.email;
+    const { otp } = req.body;
+
+    const result = await authService.verifyEmailOTP(email, otp, req.user.model);
+
+    res.json({
+      message: 'Email verified successfully',
+      isEmailVerified: result.isEmailVerified
     });
   } catch (error) {
     next(error);

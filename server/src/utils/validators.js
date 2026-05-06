@@ -60,6 +60,10 @@ export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required')
 });
 
+export const verifyOtpSchema = z.object({
+  otp: z.string().length(6, 'OTP must be 6 digits')
+});
+
 export const validate = (schema) => (req, res, next) => {
   try {
     schema.parse(req.body);

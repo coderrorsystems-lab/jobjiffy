@@ -28,10 +28,24 @@ Both use ES modules (`"type": "module"` in package.json).
 | `/api/auth/login` | POST | Email/password login |
 | `/api/auth/refresh-token` | POST | Refresh access token |
 | `/api/auth/logout` | POST | Logout |
-| `/api/auth/admin/login` | POST | Hardcoded admin login |
+| `/api/auth/send-otp` | POST | Send OTP to logged-in user's email |
+| `/api/auth/verify-otp` | POST | Verify OTP and mark email as verified |
 | `/api/auth/profile` | GET | Get user profile |
 | `/api/auth/profile` | PUT | Update profile |
 | `/api/auth/change-password` | POST | Change password |
+
+## Email OTP Verification
+
+- **Send OTP**: `POST /api/auth/send-otp` - Requires JWT token in header, sends OTP to user's email
+- **Verify OTP**: `POST /api/auth/verify-otp` - Requires JWT + `{ otp: "123456" }`, updates `isEmailVerified: true` in DB
+
+SMTP config in `.env`:
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+```
 
 ## Notes
 
