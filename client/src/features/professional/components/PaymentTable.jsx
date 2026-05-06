@@ -5,7 +5,7 @@ export default function PaymentTable({ payments }) {
         <thead>
           <tr className="border-b border-slate-200 dark:border-slate-700">
             <th className="text-left py-4 px-4 font-semibold text-slate-900 dark:text-white">
-              Customer
+              User
             </th>
             <th className="text-left py-4 px-4 font-semibold text-slate-900 dark:text-white">
               Service
@@ -28,7 +28,7 @@ export default function PaymentTable({ payments }) {
               className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
             >
               <td className="py-4 px-4 text-slate-900 dark:text-white font-medium">
-                {payment.customer}
+                {payment.User}
               </td>
               <td className="py-4 px-4 text-slate-600 dark:text-slate-400">
                 {payment.service}

@@ -17,7 +17,7 @@ export default function BookingItem({ booking, index = 0, onAccept, onReject }) 
     >
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-white truncate">{booking.customerName}</h3>
+          <h3 className="font-semibold text-white truncate">{booking.UserName}</h3>
           <p className="text-sm text-slate-400">{booking.service}</p>
         </div>
         <span className={`text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0 ${
@@ -44,7 +44,7 @@ export default function BookingItem({ booking, index = 0, onAccept, onReject }) 
         </div>
         <div className="flex items-center gap-2 text-sm text-slate-300">
           <Phone size={14} className="text-cyan-400 flex-shrink-0" />
-          <span>{booking.customerPhone}</span>
+          <span>{booking.UserPhone}</span>
         </div>
       </div>
 

@@ -38,7 +38,7 @@ export default function RatingDisplay({ rating, totalReviews }) {
         <p className="text-2xl font-bold text-slate-900 dark:text-white">
           98%
         </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Customer satisfaction</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">User satisfaction</p>
       </div>
     </div>
   );

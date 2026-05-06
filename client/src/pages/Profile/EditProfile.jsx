@@ -2,8 +2,9 @@ import { motion } from 'framer-motion';
 import { User, Mail, Phone, MapPin, ArrowLeft, Upload, Check, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../features/auth/hooks/useAuth';
+import { useAuth } from '../../features/auth/hooks/useAuth';
 import { useWindowScroll } from '@/hooks';
+import { updateUserProfile, updateProfessionalProfile } from './serivce/profileAPI';
 
 export default function EditProfile() {
   const navigate = useNavigate();
@@ -12,11 +13,11 @@ export default function EditProfile() {
   // Scroll to top when page loads
   useWindowScroll(true);
   const [formData, setFormData] = useState({
-    fullName: user?.fullName || '',
+    fullName: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
     location: user?.location || '',
-    bio: user?.bio || '',
+   
     avatar: user?.avatar || '',
   });
   const [loading, setLoading] = useState(false);
@@ -86,16 +87,31 @@ export default function EditProfile() {
 
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
+      const updateData = {
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+       
+        location: {
+          city: formData.location,
+        },
+      };
+
+      // Call the appropriate API based on user type
+      const userRole = localStorage.getItem('userRole') || 'user';
+      if (userRole === 'professional') {
+        await updateProfessionalProfile(updateData);
+      } else {
+        await updateUserProfile(updateData);
+      }
+
       // Update user in auth context
       updateUser({
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         location: formData.location,
-        bio: formData.bio,
+       
         avatar: formData.avatar,
       });
 
@@ -106,6 +122,7 @@ export default function EditProfile() {
       }, 2000);
     } catch (error) {
       console.error('Error saving profile:', error);
+      setSaveMessage(error.message || 'Failed to save profile');
     } finally {
       setLoading(false);
     }
@@ -294,7 +311,7 @@ export default function EditProfile() {
                 <input
                   type="text"
                   name="location"
-                  value={formData.location}
+                 value={formData.location ? formData.location : ""}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-4 py-2 bg-slate-800 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors ${
                     errors.location ? 'border-red-500' : 'border-slate-700'
@@ -303,31 +320,11 @@ export default function EditProfile() {
                 />
               </div>
               {errors.location && (
-                <p className="text-red-400 text-xs mt-1">{errors.location}</p>
+                <p className="text-red-400 text-xs mt-1">{errors.location }</p>
               )}
             </motion.div>
 
-            {/* Bio */}
-            <motion.div
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Bio (Optional)
-              </label>
-              <textarea
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors resize-none"
-                placeholder="Tell us about yourself..."
-                rows={4}
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                {formData.bio.length}/200 characters
-              </p>
-            </motion.div>
+           
           </div>
 
           {/* Save Message */}

@@ -2,7 +2,8 @@ import { motion } from 'framer-motion';
 import { Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function ProfileInfo({ user }) {
+export default function ProfileInfo( {name}) {
+  
   const navigate = useNavigate();
 
   return (
@@ -17,11 +18,11 @@ export default function ProfileInfo({ user }) {
           className="w-32 h-32 rounded-full border-4 border-slate-900 bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg"
           whileHover={{ scale: 1.05 }}
         >
-          {user?.fullName?.[0]?.toUpperCase() || 'U'}
+          {name?.[0]?.toUpperCase() || 'U'}
         </motion.div>
         <div className="pb-2">
-          <h1 className="text-3xl font-bold text-white mb-1">{user?.fullName || 'User'}</h1>
-          <p className="text-slate-400">{user?.role || 'Member'}</p>
+          <h1 className="text-3xl font-bold text-white mb-1">{name || 'User'}</h1>
+       
         </div>
       </div>
 

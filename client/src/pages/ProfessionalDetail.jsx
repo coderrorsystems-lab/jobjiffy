@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Star, MapPin, Calendar, MessageSquare, Upload, X, File, Image as ImageIcon } from 'lucide-react';
 import { getProfessionalByIdParam } from '../data/professionals';
+import { isAuthenticated } from '../utils/authUtils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -76,6 +77,16 @@ export default function ProfessionalDetail() {
 
   const removeFile = (fileId) => {
     setUploadedFiles(uploadedFiles.filter(f => f.id !== fileId));
+  };
+
+  // Handler to check authentication before allowing request creation
+  const handleCreateRequest = () => {
+    if (!isAuthenticated()) {
+    
+      navigate('/login');
+      return;
+    }
+    setShowRequestModal(true);
   };
 
   const getFileIcon = (fileType) => {
@@ -173,7 +184,7 @@ export default function ProfessionalDetail() {
 
                 {/* Create Request Button */}
                 <motion.button
-                  onClick={() => setShowRequestModal(true)}
+                  onClick={handleCreateRequest}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50"
@@ -282,7 +293,7 @@ export default function ProfessionalDetail() {
                 transition={{ duration: 0.3 }}
                 className="space-y-4"
               >
-                <h3 className="text-xl font-bold text-white mb-6">Customer Reviews</h3>
+                <h3 className="text-xl font-bold text-white mb-6">User Reviews</h3>
                 {professional.reviews.map((review, idx) => (
                   <motion.div
                     key={idx}

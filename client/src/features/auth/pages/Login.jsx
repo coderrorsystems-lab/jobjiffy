@@ -5,12 +5,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useWindowScroll } from '@/hooks';
 import { login } from '../services/authAPI';
 import { useTheme } from '@/theme/useTheme';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Login() {
   useWindowScroll(true);
   const navigate = useNavigate();
+  const { login: contextLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('user'); // 'user' or 'professional'
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -36,7 +39,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await login(email, password);
+      const response = await login(email, password, role);
 
       // if network was slow, show a non-blocking warning
       if (response._meta?.slowNetwork) {
@@ -44,11 +47,33 @@ export default function Login() {
         setTimeout(() => setNetworkWarning(''), 5000);
       }
 
-      // Mark user as authenticated
-      localStorage.setItem('jobjiffy_is_authenticated', 'true');
-      localStorage.setItem('user', JSON.stringify(response.user));
+      // Ensure user object exists and has necessary fields
+      const userData = response.user || {};
+      if (!userData._id && response.userId) {
+        userData._id = response.userId;
+      }
+      if (!userData.email) {
+        userData.email = email;
+      }
 
-      navigate('/');
+      // Update auth context immediately
+      contextLogin(
+        userData,
+        response.accessToken,
+        response.refreshToken,
+        role
+      );
+
+      console.log('Login successful - User data:', userData, 'Role:', role);
+
+      // Navigate based on role with a small delay to ensure state updates
+      setTimeout(() => {
+        if (role === 'professional') {
+          navigate('/professional/dashboard', { replace: true });
+        } else {
+          navigate('/home', { replace: true });
+        }
+      }, 100);
     } catch (err) {
       if (err.isNetwork || (err.original && err.original.isAxiosError && !err.original.response)) {
         setError('Network error: please check your internet connection and try again.');
@@ -143,6 +168,35 @@ export default function Login() {
                 className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Login As Selection */}
+          <div className="pt-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Login As</label>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => setRole('user')}
+                className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
+                  role === 'user'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                User
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('professional')}
+                className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
+                  role === 'professional'
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                Professional
               </button>
             </div>
           </div>

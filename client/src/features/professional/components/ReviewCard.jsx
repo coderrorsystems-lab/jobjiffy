@@ -12,7 +12,7 @@ export default function ReviewCard({ review, index = 0 }) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
-            {review.customer}
+            {review.User}
           </h3>
           <div className="flex items-center gap-2">
             <div className="flex gap-0.5">

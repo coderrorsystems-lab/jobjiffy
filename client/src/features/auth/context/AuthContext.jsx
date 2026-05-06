@@ -4,24 +4,9 @@
  */
 
 import React, { createContext, useState, useEffect } from 'react';
+import { clearAuthData } from '@/utils/authUtils';
 
 export const AuthContext = createContext(null);
-
-// Demo user for testing
-const DEMO_USER = {
-  id: '1',
-  fullName: 'Jatin Kumar',
-  email: 'jatin@jobjiffy.com',
-  phone: '+91-9876543210',
-  location: 'New Delhi, India',
-  bio: 'Tech enthusiast looking for home services',
-  role: 'user',
-  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-  createdAt: '2024-01-15',
-  bookings: 5,
-  reviews: 3,
-  saved: 12,
-};
 
 /**
  * Auth Provider - wrap your app with this
@@ -29,40 +14,40 @@ const DEMO_USER = {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState('user');
 
   // Initialize user from localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
+    const role = localStorage.getItem('userRole');
     
-    // Check if user is stored, otherwise use demo user
     if (storedUser && token) {
       try {
         setUser(JSON.parse(storedUser));
+        setUserRole(role || 'user');
       } catch (error) {
         console.error('Error parsing stored user:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+        clearAuthData();
       }
-    } else {
-      // Set demo user for testing (remove in production)
-      setUser(DEMO_USER);
-      localStorage.setItem('user', JSON.stringify(DEMO_USER));
-      localStorage.setItem('token', 'demo-token-123');
     }
     setIsLoading(false);
   }, []);
 
-  const login = (userData, token) => {
+  const login = (userData, accessToken, refreshToken, role = 'user') => {
     setUser(userData);
+    setUserRole(role);
     localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('token', token);
+    localStorage.setItem('accessToken', accessToken);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('userRole', role);
+    localStorage.setItem('jobjiffy_is_authenticated', 'true');
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    setUserRole('user');
+    clearAuthData();
   };
 
   const updateUser = (updatedData) => {
@@ -73,6 +58,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
+    userRole,
     login,
     logout,
     updateUser,

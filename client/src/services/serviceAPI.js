@@ -18,7 +18,7 @@ export async function fetchServices({ query = '', limit = 8, offset = 0 } = {}) 
 }
 
 export async function registerProfessional(profile) {
-  const response = await apiClient.post('/api/professionals/register', profile);
+  const response = await apiClient.post('/api/auth/professional/register', profile);
   return response.data;
 }
 

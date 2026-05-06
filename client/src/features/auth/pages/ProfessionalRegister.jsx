@@ -8,7 +8,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useWindowScroll } from '@/hooks';
 import { registerProfessional } from '../../../services/serviceAPI';
-
+import { serviceTypes as SERVICE_CATEGORIES } from '../../../data/serivceTypes'; 
 const STEPS = [
   { id: 1, title: 'Basic Info', description: 'Your contact details' },
   { id: 2, title: 'Address & Professional Details', description: 'Location and services' },
@@ -17,14 +17,7 @@ const STEPS = [
   { id: 5, title: 'Banking Details', description: 'Payment information' }
 ];
 
-const SERVICE_CATEGORIES = [
-  { value: 'cleaning', label: 'Home Cleaning' },
-  { value: 'beauty', label: 'Beauty & Grooming' },
-  { value: 'repair', label: 'Repair & Maintenance' },
-  { value: 'appliance', label: 'Appliance Repair' },
-  { value: 'personalcare', label: 'Personal Care' },
-  { value: 'other', label: 'Other' }
-];
+
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -57,15 +50,12 @@ export default function ProfessionalRegister() {
     professionalDetails: {
       category: '',
       bio: '',
-      experience: '',
-      serviceArea: {
-        city: '',
-        radius: 10
-      },
+      collegeName: '',
+      department: '',
+      year: '',
+      collegeGmail: '',
       kycDocuments: {
-        aadhar: null,
-        pan: null,
-        addressProof: null
+        collegeId: null
       },
       bankDetails: {
         accountNumber: '',
@@ -76,7 +66,7 @@ export default function ProfessionalRegister() {
     }
   });
 
-  const [newService, setNewService] = useState({ name: '', description: '', price: '' });
+  const [newService, setNewService] = useState({ name: '', description: '', price: '', category: '' });
   const [services, setServices] = useState([]);
   const [previews, setPreviews] = useState({});
 
@@ -142,17 +132,6 @@ export default function ProfessionalRegister() {
     }));
   };
 
-  const handleServiceAreaChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      professionalDetails: {
-        ...prev.professionalDetails,
-        serviceArea: { ...prev.professionalDetails.serviceArea, [name]: name === 'radius' ? Number(value) : value }
-      }
-    }));
-  };
-
   const handleBankDetailsChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -167,8 +146,8 @@ export default function ProfessionalRegister() {
   const handleAddService = (e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
-    if (!newService.name || !newService.description || !newService.price) {
-      setError('Please fill all service details');
+    if (!newService.name || !newService.description || !newService.price || !newService.category) {
+      setError('Please fill all service details including category');
       return;
     }
     if (Number(newService.price) <= 0) {
@@ -176,7 +155,7 @@ export default function ProfessionalRegister() {
       return;
     }
     setServices(prev => [...prev, { ...newService, price: Number(newService.price), id: Date.now() }]);
-    setNewService({ name: '', description: '', price: '' });
+    setNewService({ name: '', description: '', price: '', category: '' });
     setError('');
   };
 
@@ -276,16 +255,16 @@ export default function ProfessionalRegister() {
 
     if (currentStep === 3) {
       const { professionalDetails } = formData;
-      if (!professionalDetails.category || !professionalDetails.experience || !professionalDetails.bio || !professionalDetails.serviceArea.city) {
-        setError('Please fill all professional details');
+      if (!professionalDetails.category || !professionalDetails.collegeName || !professionalDetails.department || !professionalDetails.year || !professionalDetails.bio) {
+        setError('Please fill all required fields');
         return false;
       }
       if (services.length === 0) {
         setError('Please add at least one service');
         return false;
       }
-      if (Number(professionalDetails.experience) < 0) {
-        setError('Experience must be a non-negative number');
+      if (Number(professionalDetails.year) < 1980 || Number(professionalDetails.year) > new Date().getFullYear() + 5) {
+        setError('Please enter a valid year');
         return false;
       }
       if (professionalDetails.bio.length > 500) {
@@ -295,9 +274,17 @@ export default function ProfessionalRegister() {
     }
 
     if (currentStep === 4) {
-      const { kycDocuments } = formData.professionalDetails;
-      if (!kycDocuments.aadhar || !kycDocuments.addressProof) {
-        setError('Please upload all required KYC documents');
+      const { collegeGmail, kycDocuments } = formData.professionalDetails;
+      if (!kycDocuments.collegeId) {
+        setError('Please upload your College ID');
+        return false;
+      }
+      if (!collegeGmail) {
+        setError('Please enter your College Gmail');
+        return false;
+      }
+      if (!isValidEmail(collegeGmail)) {
+        setError('Please enter a valid email address');
         return false;
       }
     }
@@ -339,38 +326,53 @@ export default function ProfessionalRegister() {
 
     setLoading(true);
     try {
-      const formDataToSubmit = new FormData();
-      
-      // Add basic info
-      formDataToSubmit.append('name', formData.name);
-      formDataToSubmit.append('email', formData.email);
-      formDataToSubmit.append('password', formData.password);
-      formDataToSubmit.append('phone', formData.phone);
-      
-      // Add address
-      formDataToSubmit.append('address', JSON.stringify(formData.address));
-      
-      // Add professional details
-      const professionalData = { 
-        ...formData.professionalDetails,
-        services: services.map(({ id, ...service }) => service) // Remove id before sending
+      // Backend expects flat JSON format
+      const submitData = {
+        // Basic Info
+        fullname: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        
+        // Address - flat fields
+        streetAddress: formData.address.street,
+        city: formData.address.city,
+        state: formData.address.state,
+        zipCode: formData.address.zipCode,
+        
+        // College Information - flat fields
+        collegeName: formData.professionalDetails.collegeName,
+        department: formData.professionalDetails.department,
+        yearOfGraduation: Number(formData.professionalDetails.year),
+        collegeEmail: formData.professionalDetails.collegeGmail,
+        
+        // Bio & Category
+        bio: formData.professionalDetails.bio,
+        category: formData.professionalDetails.category,
+        
+        // Services - correct field names
+        services: services.map(({ id, ...service }) => ({
+          category: service.category,
+          serviceName: service.name,
+          desc: service.description,
+          price: service.price
+        })),
+        
+        // Bank Details - flat fields
+        accountNumber: formData.professionalDetails.bankDetails.accountNumber,
+        accountHolderName: formData.professionalDetails.bankDetails.accountHolderName,
+        ifscCode: formData.professionalDetails.bankDetails.ifsc,
+        upiId: formData.professionalDetails.bankDetails.upiId,
+        
+        // KYC Documents
+        kycDocuments: {
+          collegeId: previews.collegeId || ''
+        }
       };
-      formDataToSubmit.append('professionalDetails', JSON.stringify(professionalData));
-      
-      // Add files
-      if (formData.professionalDetails.kycDocuments.aadhar) {
-        formDataToSubmit.append('aadhar', formData.professionalDetails.kycDocuments.aadhar);
-      }
-      if (formData.professionalDetails.kycDocuments.pan) {
-        formDataToSubmit.append('pan', formData.professionalDetails.kycDocuments.pan);
-      }
-      if (formData.professionalDetails.kycDocuments.addressProof) {
-        formDataToSubmit.append('addressProof', formData.professionalDetails.kycDocuments.addressProof);
-      }
 
-      const response = await registerProfessional(formDataToSubmit);
+      const response = await registerProfessional(submitData);
       
-      if (response?.user?.status === 'pending') {
+      if (response?.professional?.status === 'pending') {
         // Show success message and redirect
         navigate('/login', { 
           state: { 
@@ -577,23 +579,7 @@ export default function ProfessionalRegister() {
         </div>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Service Category *</label>
-        <select
-          name="category"
-          value={formData.professionalDetails.category}
-          onChange={handleProfessionalDetailsChange}
-          className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
-          required
-        >
-          <option value="" className="bg-slate-900 text-white">Select a category</option>
-          {SERVICE_CATEGORIES.map(cat => (
-            <option key={cat.value} value={cat.value} className="bg-slate-900 text-white">
-              {cat.label}
-            </option>
-          ))}
-        </select>
-      </motion.div>
+    
     </motion.div>
   );
 
@@ -601,49 +587,71 @@ export default function ProfessionalRegister() {
   const Step3 = () => (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Years of Experience *</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">College Name *</label>
         <input
-          type="number"
-          name="experience"
-          value={formData.professionalDetails.experience}
+          type="text"
+          name="collegeName"
+          value={formData.professionalDetails.collegeName}
           onChange={handleProfessionalDetailsChange}
           onKeyDown={handleKeyDown}
-          placeholder="5"
-          min="0"
+          placeholder="e.g., Delhi University, IIT Delhi"
           className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
           required
         />
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Service Area City *</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Department *</label>
         <div className="relative">
-          <MapPin className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
-          <input
-            type="text"
-            name="city"
-            value={formData.professionalDetails.serviceArea.city}
-            onChange={handleServiceAreaChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Delhi"
-            className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
+          <select
+            name="department"
+            value={formData.professionalDetails.department}
+            onChange={handleProfessionalDetailsChange}
+            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all appearance-none cursor-pointer pr-10 relative z-20"
             required
-          />
+          >
+            <option value="" className="bg-slate-900 text-white">Select department</option>
+            <option value="B.Tech" className="bg-slate-900 text-white">B.Tech</option>
+            <option value="M.Tech" className="bg-slate-900 text-white">M.Tech</option>
+            <option value="MBA" className="bg-slate-900 text-white">MBA</option>
+            <option value="MBS" className="bg-slate-900 text-white">MBS</option>
+            <option value="Pharmacy" className="bg-slate-900 text-white">Pharmacy</option>
+            <option value="LLB" className="bg-slate-900 text-white">LLB</option>
+            <option value="B.Sc" className="bg-slate-900 text-white">B.Sc</option>
+            <option value="M.Sc" className="bg-slate-900 text-white">M.Sc</option>
+            <option value="Other" className="bg-slate-900 text-white">Other</option>
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-slate-400">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </div>
         </div>
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Service Radius (km)</label>
-        <input
-          type="number"
-          name="radius"
-          value={formData.professionalDetails.serviceArea.radius}
-          onChange={handleServiceAreaChange}
-          onKeyDown={handleKeyDown}
-          placeholder="10"
-          min="1"
-          className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
-        />
+        <label className="block text-sm font-medium text-slate-300 mb-2">Year of Graduation *</label>
+        <div className="relative">
+          <select
+            name="year"
+            value={formData.professionalDetails.year}
+            onChange={handleProfessionalDetailsChange}
+            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all appearance-none cursor-pointer pr-10 relative z-20"
+            required
+          >
+            <option value="" className="bg-slate-900 text-white">Select year of graduation</option>
+            {Array.from({ length: 9 }, (_, i) => 2022 + i).map(year => (
+              <option key={year} value={year} className="bg-slate-900 text-white">
+                {year}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-slate-400">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </div>
+        </div>
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
@@ -665,6 +673,25 @@ export default function ProfessionalRegister() {
         <label className="block text-sm font-medium text-slate-300 mb-2">Add Services *</label>
         <div className="space-y-3 bg-slate-800 border border-slate-700 rounded-xl p-4">
           <div className="space-y-2">
+            <div className="relative">
+              <select
+                value={newService.category}
+                onChange={(e) => setNewService(prev => ({ ...prev, category: e.target.value }))}
+                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer pr-8 relative z-20"
+              >
+                <option value="" className="bg-slate-900 text-white">Select service category</option>
+                {SERVICE_CATEGORIES.map(cat => (
+                  <option key={cat.id} value={cat.name} className="bg-slate-900 text-white">
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-slate-500">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </div>
+            </div>
             <input
               type="text"
               placeholder="Service name"
@@ -683,12 +710,12 @@ export default function ProfessionalRegister() {
             />
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <span className="absolute left-3 top-2.5 text-slate-400 font-semibold text-sm">₹</span>
                 <input
                   type="number"
-                  placeholder="Price"
-                  min="0"
-                  step="0.01"
+                  placeholder="Price in INR"
+                  min="50"
+                  step="10"
                   value={newService.price}
                   onChange={(e) => setNewService(prev => ({ ...prev, price: e.target.value }))}
                   className="w-full pl-8 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
@@ -719,6 +746,7 @@ export default function ProfessionalRegister() {
                   className="bg-slate-700 p-3 rounded-lg flex justify-between items-start gap-3"
                 >
                   <div className="flex-1">
+                    <p className="text-xs font-semibold text-cyan-400 mb-1">{service.category}</p>
                     <p className="font-medium text-white">{service.name}</p>
                     <p className="text-sm text-slate-400 line-clamp-1">{service.description}</p>
                     <p className="text-cyan-400 font-semibold text-sm">₹ {service.price}</p>
@@ -751,28 +779,28 @@ const Step4 = () => (
     <motion.div variants={itemVariants} className="bg-blue-900/30 border border-blue-800 rounded-lg p-3 flex gap-3">
       <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
       <p className="text-sm text-blue-300">
-        Upload clear photos of your documents for verification. File size: max 5MB
+        Please upload your College ID and provide your College Gmail for verification.
       </p>
     </motion.div>
 
-    {/* AADHAR / PAN */}
+    {/* College ID */}
     <motion.div variants={itemVariants} className="group">
       <label className="block text-sm font-medium text-slate-300 mb-2">
-        Aadhar / PAN Card *
+        College ID *
       </label>
 
       <label className="flex flex-col items-center justify-center w-full px-4 py-6 bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors">
         <div className="flex flex-col items-center justify-center">
 
-          {previews.aadhar ? (
+          {previews.collegeId ? (
             <>
-              <img src={previews.aadhar} alt="Preview" className="w-20 h-12 rounded object-cover mb-2" />
+              <img src={previews.collegeId} alt="Preview" className="w-20 h-12 rounded object-cover mb-2" />
               <p className="text-sm text-cyan-400 font-medium">Click to change</p>
             </>
           ) : (
             <>
               <Upload className="w-8 h-8 text-slate-500 mb-2" />
-              <p className="text-sm text-slate-400">Upload Aadhar or PAN Card</p>
+              <p className="text-sm text-slate-400">Upload your College ID</p>
             </>
           )}
 
@@ -781,84 +809,36 @@ const Step4 = () => (
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp,application/pdf"
-          onChange={(e) => handleFileChange(e, 'aadhar')}
+          onChange={(e) => handleFileChange(e, 'collegeId')}
           className="hidden"
           required
         />
       </label>
     </motion.div>
 
-    {/* PAN (optional) */}
+    {/* College Gmail */}
     <motion.div variants={itemVariants} className="group">
-      <label className="block text-sm font-medium text-slate-300 mb-2">
-        PAN Card (Optional)
-      </label>
-
-      <label className="flex flex-col items-center justify-center w-full px-4 py-6 bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors">
-        <div className="flex flex-col items-center justify-center">
-
-          {previews.pan ? (
-            <>
-              <img src={previews.pan} alt="Preview" className="w-20 h-12 rounded object-cover mb-2" />
-              <p className="text-sm text-cyan-400 font-medium">Click to change</p>
-            </>
-          ) : (
-            <>
-              <Upload className="w-8 h-8 text-slate-500 mb-2" />
-              <p className="text-sm text-slate-400">Upload PAN Card (Optional)</p>
-            </>
-          )}
-
-        </div>
-
+      <label className="block text-sm font-medium text-slate-300 mb-2">College Gmail *</label>
+      <div className="relative">
+        <Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
         <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          onChange={(e) => handleFileChange(e, 'pan')}
-          className="hidden"
-        />
-      </label>
-    </motion.div>
-
-    {/* ADDRESS PROOF */}
-    <motion.div variants={itemVariants} className="group">
-      <label className="block text-sm font-medium text-slate-300 mb-2">
-        Address Proof *
-      </label>
-
-      <label className="flex flex-col items-center justify-center w-full px-4 py-6 bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors">
-        <div className="flex flex-col items-center justify-center">
-
-          {previews.addressProof ? (
-            <>
-              <img src={previews.addressProof} alt="Preview" className="w-20 h-12 rounded object-cover mb-2" />
-              <p className="text-sm text-cyan-400 font-medium">Click to change</p>
-            </>
-          ) : (
-            <>
-              <Upload className="w-8 h-8 text-slate-500 mb-2" />
-              <p className="text-sm text-slate-400">
-                Upload Address Proof (Utility Bill, Rental Agreement, etc.)
-              </p>
-            </>
-          )}
-
-        </div>
-
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          onChange={(e) => handleFileChange(e, 'addressProof')}
-          className="hidden"
+          type="email"
+          name="collegeGmail"
+          value={formData.professionalDetails.collegeGmail}
+          onChange={handleProfessionalDetailsChange}
+          onKeyDown={handleKeyDown}
+          placeholder="your.email@college.ac.in"
+          className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all"
           required
         />
-      </label>
+      </div>
+      <p className="text-xs text-slate-500 mt-1">Must be your official college email address</p>
     </motion.div>
 
     <motion.div variants={itemVariants} className="bg-amber-900/30 border border-amber-800 rounded-lg p-3 flex gap-3">
       <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
       <p className="text-sm text-amber-300">
-        Admin verification required. You'll receive status updates via email.
+        Your College ID will be verified by admin. You'll receive status updates via email.
       </p>
     </motion.div>
 

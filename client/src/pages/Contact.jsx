@@ -219,7 +219,7 @@ export default function Contact() {
             },
             {
               q: 'What are your business hours?',
-              a: 'We operate 24/7 to serve our customers across different time zones.',
+              a: 'We operate 24/7 to serve our Users across different time zones.',
             },
             {
               q: 'How can I report an issue?',

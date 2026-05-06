@@ -196,9 +196,9 @@ export default function AppDownloadSection() {
           viewport={{ once: true }}
         >
           {[
-            { number: '5M+', label: 'Downloads', icon: '⬇️' },
+            { number: '1k+', label: 'Downloads', icon: '⬇️' },
             { number: '4.9★', label: 'App Rating', icon: '⭐' },
-            { number: '150K+', label: 'Daily Active Users', icon: '👥' },
+            { number: '150+', label: 'Daily Active Users', icon: '👥' },
           ].map((stat, idx) => (
             <motion.div
               key={idx}

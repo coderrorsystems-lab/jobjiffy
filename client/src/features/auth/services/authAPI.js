@@ -4,7 +4,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
   timeout: 10000,
 });
 
@@ -38,13 +38,14 @@ export async function fetchProfessionalsByService({ service = '', search = '', s
   return response.data;
 }
 
-export async function login(email, password) {
-  // console.log('Attempting login with email:', email, 'and password:', password ? '******' : '(empty)');
+export async function login(email, password, role ) {
+  // console.log('Attempting login with email:', email, 'role:', role, 'and password:', password ? '******' : '(empty)');
   const start = Date.now();
   try {
     const response = await apiClient.post('/api/auth/login', {
       email,
       password,
+      role
     });
 console.log('Login response received:', response.data);
     const duration = Date.now() - start;

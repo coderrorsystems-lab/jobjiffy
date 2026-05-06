@@ -115,7 +115,7 @@ export default function HeroSection() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-sm font-medium">
             <Zap size={16} className="text-blue-600 dark:text-blue-300" />
-            Trusted by 10,000+ customers worldwide
+            Trusted by 10,000+ Users worldwide
           </div>
         </motion.div>
 
@@ -279,7 +279,7 @@ export default function HeroSection() {
         >
           {[
             { label: 'Verified Pros', value: '50K+' },
-            { label: 'Happy Customers', value: '100K+' },
+            { label: 'Happy Users', value: '100K+' },
             { label: 'Services', value: '150+' },
             { label: 'On-time Rate', value: '98%' },
           ].map((stat, idx) => (

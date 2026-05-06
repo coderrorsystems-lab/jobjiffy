@@ -174,20 +174,20 @@ export default function Footer() {
             {
               icon: Phone,
               title: 'Call Us',
-              info: '+91 9876 543 210',
+              info: '+91 9988 776655',
               subtitle: 'Mon-Fri: 9AM-6PM IST',
             },
             {
               icon: Mail,
               title: 'Email Us',
-              info: 'support@jobjiffy.com',
+              info: 'coderrorsystems@gmail.com',
               subtitle: 'We reply within 24 hours',
             },
             {
               icon: MapPin,
               title: 'Location',
-              info: 'Mumbai, India',
-              subtitle: 'Serving pan-India services',
+              info: 'Inodre, India',
+              subtitle: 'provide services in indore',
             },
           ].map((contact, idx) => {
             const Icon = contact.icon;

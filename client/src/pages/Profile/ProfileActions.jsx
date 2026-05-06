@@ -1,17 +1,44 @@
 import { motion } from 'framer-motion';
-import { LogOut, AlertCircle } from 'lucide-react';
+import { LogOut, AlertCircle, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Modal } from '../../components/shared/Modal';
 import { logout as logoutAPI } from '../../features/auth/services/authAPI';
+import SettingsPanel from './Settings';
 
 export default function ProfileActions({ onLogout }) {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   return (
     <>
+      {/* Settings Panel */}
+      {showSettings && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="mb-8 bg-slate-800/50 rounded-xl border border-slate-700 p-6"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <SettingsIcon size={20} />
+              Account Settings
+            </h3>
+            <motion.button
+              onClick={() => setShowSettings(false)}
+              whileHover={{ scale: 1.1 }}
+              className="text-slate-400 hover:text-white"
+            >
+              ✕
+            </motion.button>
+          </div>
+          <SettingsPanel isEmbedded={true} />
+        </motion.div>
+      )}
+
       <motion.div
         className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-slate-700"
         initial={{ opacity: 0 }}
@@ -19,12 +46,19 @@ export default function ProfileActions({ onLogout }) {
         transition={{ delay: 0.4, duration: 0.6 }}
       >
         <motion.button
-          onClick={() => navigate('/user/settings')}
+          onClick={() => setShowSettings(!showSettings)}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="flex-1 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors"
+          className="flex-1 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          Settings
+          <SettingsIcon size={18} />
+          {showSettings ? 'Hide Settings' : 'Settings'}
+          <motion.div
+            animate={{ rotate: showSettings ? 180 : 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ChevronDown size={18} />
+          </motion.div>
         </motion.button>
 
         <motion.button

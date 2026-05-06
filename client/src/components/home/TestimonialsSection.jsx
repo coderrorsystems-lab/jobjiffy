@@ -130,10 +130,10 @@ export default function TestimonialsSection() {
         {/* Header */}
         <motion.div className="text-center" variants={itemVariants}>
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">
-            What Our Customers Say
+            What Our Users Say
           </h2>
           <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Thousands of satisfied customers share their positive experiences with our platform
+            Thousands of satisfied Users share their positive experiences with our platform
           </p>
         </motion.div>
 
@@ -178,7 +178,7 @@ export default function TestimonialsSection() {
                   {/* Divider */}
                   <div className="border-t border-slate-200 dark:border-slate-700 pt-6 mb-4" />
 
-                  {/* Customer Info */}
+                  {/* User Info */}
                   <div className="flex items-start gap-4">
                     <div className="text-4xl">{testimonial.image}</div>
                     <div className="flex-1 min-w-0">
@@ -259,7 +259,7 @@ export default function TestimonialsSection() {
           viewport={{ once: true }}
         >
           {[
-            { label: 'Customer Reviews', value: '10K+' },
+            { label: 'User Reviews', value: '1K+' },
             { label: 'Avg. Rating', value: '4.8⭐' },
             { label: 'Satisfaction', value: '98%' },
           ].map((stat, idx) => (

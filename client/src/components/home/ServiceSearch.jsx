@@ -3,6 +3,8 @@ import { Search, Sparkles, User, Briefcase } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchServices } from '../../services/serviceAPI';
+import { serviceTypes as defaultPopularServices } from '../../data/serivceTypes';
+import ServiceGrid from './ServiceGrid';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -23,16 +25,7 @@ const itemVariants = {
   },
 };
 
-const defaultPopularServices = [
-  { id: 'default-1', icon: '🎨', name: 'Logo Design', count: '1.8K+' },
-  { id: 'default-2', icon: '📊', name: 'Poster/Banner Design', count: '2.1K+' },
-  { id: 'default-3', icon: '✍️', name: 'Assignment Writing', count: '3.5K+' },
-  { id: 'default-4', icon: '📸', name: 'Photo Editing', count: '2.9K+' },
-  { id: 'default-5', icon: '📄', name: 'PDF Editing & Conversion', count: '1.6K+' },
-  { id: 'default-6', icon: '📝', name: 'Notes Making', count: '4.2K+' },
-  { id: 'default-7', icon: '🔬', name: 'Lab File Completion', count: '2.4K+' },
-  { id: 'default-8', icon: '🎬', name: 'Thumbnail Design', count: '1.9K+' },
-];
+// service types moved to src/data/serivceTypes.js and imported as defaultPopularServices
 
 export default function ServiceSearch() {
   const navigate = useNavigate();
@@ -78,10 +71,23 @@ export default function ServiceSearch() {
     setError('');
 
     try {
-      const result = await fetchServices({ query, limit });
-      setPopularServices(result?.data || []);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Filter from default services based on query
+      let filtered = defaultPopularServices;
+      if (query.trim()) {
+        filtered = defaultPopularServices.filter(service =>
+          service.name.toLowerCase().includes(query.toLowerCase())
+        );
+      }
+
+      // Limit results
+      const result = filtered.slice(0, limit);
+      setPopularServices(result.length > 0 ? result : defaultPopularServices);
     } catch (err) {
-      setError('Services load nahi ho pa rahi. Thodi der baad try karo.');
+      setError('Unable to load services. Please try again.');
+      setPopularServices(defaultPopularServices);
     } finally {
       setLoading(false);
     }
@@ -98,12 +104,31 @@ export default function ServiceSearch() {
       return;
     }
 
-    await loadPopularServices({ query, limit: showingAll ? 100 : 8 });
+    // Normalize query to lowercase for case-insensitive search
+    const normalizedQuery = query.toLowerCase();
+    
+    // Filter services based on normalized query
+    const filtered = defaultPopularServices.filter(service =>
+      service.name.toLowerCase().includes(normalizedQuery)
+    );
+
+    if (filtered.length === 0 && query) {
+      setError('No services found. Try another search.');
+      setPopularServices(defaultPopularServices);
+      return;
+    }
+
+    await loadPopularServices({ query: normalizedQuery, limit: showingAll ? 100 : 8 });
   };
 
   const handleViewAll = async () => {
-    setShowingAll(true);
-    await loadPopularServices({ query: searchQuery.trim(), limit: 100 });
+    // Navigate to all services page
+    navigate('/services');
+  };
+
+  const handleViewAllProfessionals = () => {
+    // Navigate to all professionals page
+    navigate('/professionals');
   };
 
   useEffect(() => {
@@ -119,19 +144,20 @@ export default function ServiceSearch() {
       try {
         // Check if searching by user ID
         if (isUserIdSearch(query)) {
-          const professional = await searchProfessionalByUserId(query);
-          if (professional) {
-            setSuggestions([{ ...professional, type: 'professional' }]);
-          } else {
-            setSuggestions([]);
-          }
+          // For now, return empty as we don't have professional data locally
+          setSuggestions([]);
         } else {
-          // Search by service name
-          const result = await fetchServices({ query, limit: 6 });
-          const servicesData = (result?.data || []).map(service => ({
-            ...service,
-            type: 'service'
-          }));
+          // Search by service name using local dummy data
+          const queryLower = query.toLowerCase();
+          const servicesData = defaultPopularServices
+            .filter(service =>
+              service.name.toLowerCase().includes(queryLower)
+            )
+            .slice(0, 6)
+            .map(service => ({
+              ...service,
+              type: 'service'
+            }));
           setSuggestions(servicesData);
         }
       } catch (err) {
@@ -277,57 +303,43 @@ export default function ServiceSearch() {
         )}
 
         {/* Popular Services Grid */}
-        <motion.div
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          {loading ? (
-            <div className="col-span-full text-center text-slate-400 py-6">Loading services...</div>
-          ) : (
-            popularServices.map((service) => (
-            <motion.button
-              key={service.id}
-              type="button"
-              onClick={() => navigate(`/services/${toServiceSlug(service.name)}`)}
-              className="group relative p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 text-center"
-              variants={itemVariants}
-              whileHover={{
-                y: -8,
-                boxShadow:
-                  '0 20px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04)',
-              }}
-            >
-              <div className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-110">
-                {service.icon || '🛠'}
-              </div>
-              <h3 className="font-semibold text-slate-900 dark:text-white mb-2 text-sm md:text-base">
-                {service.name}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {service.count} pros
-              </p>
-
-              {/* Gradient overlay on hover */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-blue-500 to-orange-500 rounded-2xl opacity-0 group-hover:opacity-5 transition-opacity duration-300"
-                aria-hidden="true"
-              />
-            </motion.button>
-            ))
-          )}
-        </motion.div>
+        <ServiceGrid
+          services={popularServices}
+          onServiceClick={(s) => navigate(`/services/${toServiceSlug(s.name)}`)}
+          containerVariants={containerVariants}
+          itemVariants={itemVariants}
+          loading={loading}
+        />
 
         {/* CTA */}
-        <motion.div className="text-center" variants={itemVariants}>
+        <motion.div className="flex flex-col sm:flex-row items-center justify-center gap-4" variants={itemVariants}>
           <button
             type="button"
             onClick={handleViewAll}
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold transition-all duration-300 hover:shadow-lg active:scale-95"
           >
-            {showingAll ? 'All Services Loaded' : 'View All Services'}
+            View All Services
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 7l5 5m0 0l-5 5m5-5H6"
+              />
+            </svg>
+          </button>
+          
+          <button
+            type="button"
+            onClick={handleViewAllProfessionals}
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white font-semibold transition-all duration-300 hover:shadow-lg active:scale-95"
+          >
+            View All Professionals
             <svg
               className="w-5 h-5"
               fill="none"

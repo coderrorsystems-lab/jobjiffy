@@ -27,7 +27,7 @@ export default function BookingCard({
         <div className="flex items-start justify-between mb-2">
           <div>
             <p className="font-medium text-slate-900 dark:text-white">
-              {booking.customer}
+              {booking.User}
             </p>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {booking.service}
@@ -61,7 +61,7 @@ export default function BookingCard({
         {/* Booking Info */}
         <div>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-            {booking.customer}
+            {booking.User}
           </h3>
 
           <div className="space-y-3">

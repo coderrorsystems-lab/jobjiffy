@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Menu, X, LogIn, UserPlus, ChevronDown, User, Home, Info, Briefcase, Bell, HelpCircle, Wallet, Settings, LogOut, MapPin } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { serviceTypes as services } from '../../data/serivceTypes';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { useResetScroll, useModalScroll } from '@/hooks';
 
@@ -12,16 +13,7 @@ const navigationLinks = [
   { label: 'Contact', to: '/contact', isRoute: true },
 ];
 
-const services = [
-  { name: 'AC Repair & Service', icon: '❄️' },
-  { name: 'Beauty & Salon', icon: '💇' },
-  { name: 'Electronics Repair', icon: '📱' },
-  { name: 'Electrical', icon: '⚡' },
-  { name: 'Home Cleaning', icon: '🧹' },
-  { name: 'Plumbing', icon: '🚿' },
-  { name: 'Painting', icon: '🏠' },
-  { name: 'Furniture Repair', icon: '🛏️' },
-];
+
 
 const mobileMenuItems = [
   { label: 'Home', icon: <Home size={20} />, to: '/', type: 'route' },
@@ -29,7 +21,6 @@ const mobileMenuItems = [
   { label: 'Services', icon: <MapPin size={20} />, to: '', type: 'services' },
   { label: 'My Bookings', icon: <Briefcase size={20} />, to: '/user/bookings', type: 'route' },
   { label: 'Professional Dashboard', icon: <Briefcase size={20} />, to: '/professional/dashboard', type: 'route' },
-  { label: 'Edit Profile', icon: <User size={20} />, to: '/user/edit-profile', type: 'route' },
   { label: 'Notifications', icon: <Bell size={20} />, to: '/notifications', type: 'route' },
   { label: 'Support / Help', icon: <HelpCircle size={20} />, to: '/support', type: 'route' },
   { label: 'Wallet', icon: <Wallet size={20} />, to: '/wallet', type: 'route' },
@@ -40,10 +31,14 @@ const mobileMenuItems = [
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isServicesDropdownOpen, setIsServicesDropdownOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const mobileMenuRef = useResetScroll();
   useModalScroll(isOpen);
+
+  // Check if user is actually logged in (not just exists but has valid data)
+  const isUserLoggedIn = !!(user && (user._id || user.id || user.email));
 
   const toServiceSlug = (serviceName) =>
     String(serviceName || '')
@@ -156,19 +151,33 @@ export default function Navbar() {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-4">
-          {user ? (
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Link
-                to="/user/profile"
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-all duration-300 hover:brightness-110"
+          {isUserLoggedIn ? (
+            <>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <User size={16} />
-                Profile
-              </Link>
-            </motion.div>
+                <Link
+                  to="/user/bookings"
+                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-300 transition-all duration-300 hover:text-white hover:bg-slate-800"
+                >
+                  <Briefcase size={16} />
+                  My Bookings
+                </Link>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  to="/user/profile"
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-all duration-300 hover:brightness-110"
+                >
+                  <User size={16} />
+                  Profile
+                </Link>
+              </motion.div>
+            </>
           ) : (
             <>
               <motion.div
@@ -300,21 +309,59 @@ export default function Navbar() {
               <div className="my-4 border-t border-slate-800" />
 
               {/* Auth / Profile Section */}
-              {user ? (
+              {isUserLoggedIn ? (
                 <div className="space-y-2">
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5, duration: 0.3 }}
                   >
-                    <Link
-                      to="/user/profile"
-                      onClick={() => setIsOpen(false)}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white transition-all text-sm font-medium hover:brightness-110"
+                    <button
+                      onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white transition-all text-sm font-medium hover:brightness-110"
                     >
-                      <User size={18} />
-                      {user.fullName || 'My Profile'}
-                    </Link>
+                      <div className="flex items-center gap-3">
+                        <User size={18} />
+                        {user?.fullName || user?.name || user?.email || 'Profile'}
+                      </div>
+                      <ChevronDown
+                        size={18}
+                        className={`transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {/* Profile Submenu */}
+                    {isProfileDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="ml-2 mt-2 space-y-1 border-l-2 border-cyan-500 pl-4"
+                      >
+                        <Link
+                          to="/user/profile"
+                          onClick={() => {
+                            setIsOpen(false);
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-blue-600/20 hover:text-white transition-colors"
+                        >
+                          <User size={16} />
+                          <span>View Profile</span>
+                        </Link>
+                        <Link
+                          to="/user/edit-profile"
+                          onClick={() => {
+                            setIsOpen(false);
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-blue-600/20 hover:text-white transition-colors"
+                        >
+                          <User size={16} />
+                          <span>Edit Profile</span>
+                        </Link>
+                      </motion.div>
+                    )}
                   </motion.div>
 
                   <motion.button

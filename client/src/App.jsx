@@ -1,19 +1,22 @@
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AuthProvider } from "./features/auth/context/AuthContext";
+import { ProtectedRoute } from "./utils/ProtectedRoute";
+import { isAuthenticated, getUserRole } from "./utils/authUtils";
 import ScrollToTop from "./utils/ScrollToTop";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import BrandIntroOverlay from "./components/shared/BrandIntroOverlay";
 import Home from "./pages/Home";
-import AllProfessionals from "./pages/AllProfessionals";
+import AllServicesPage from "./pages/AllServicesPage";
+import AllProfessionalsPage from "./pages/AllProfessionalsPage";
 import ProfessionalDetail from "./pages/ProfessionalDetail";
 import ServiceProfessionals from "./pages/ServiceProfessionals";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
-import EditProfile from "./pages/EditProfile";
-import Settings from "./pages/Settings";
+import EditProfile from "./pages/Profile/EditProfile";
+import Settings from "./pages/Profile/Settings";
 import { BookingDashboard } from "./features/booking";
 import {
   Login,
@@ -48,13 +51,18 @@ export default function App() {
 function AppContent() {
   const location = useLocation();
   const isProfessionalRoute = location.pathname.startsWith('/professional');
+  const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/forgot-password') || location.pathname.startsWith('/verify-otp');
   
+  // Get auth state
+  const userIsAuthenticated = isAuthenticated();
+  const userRole = getUserRole();
+
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-slate-950">
       <BrandIntroOverlay />
 
-      {/* Navbar - Hide on professional routes */}
-      {!isProfessionalRoute && (
+      {/* Navbar - Hide on professional routes and auth pages */}
+      {!isProfessionalRoute && !isAuthPage && (
         <div className="sticky top-0 z-50">
           <Navbar />
         </div>
@@ -63,15 +71,18 @@ function AppContent() {
       {/* Main Content */}
       <main className={isProfessionalRoute ? "flex-1" : "flex-1 pt-16 md:pt-20"}>
         <Routes>
-          {/* Public Routes */}
+          {/* ==================== PUBLIC ROUTES (No Login Required) ==================== */}
+          
           <Route path="/" element={<Home />} />
-          <Route path="/professionals" element={<AllProfessionals />} />
+          <Route path="/services" element={<AllServicesPage />} />
+          <Route path="/professionals" element={<AllProfessionalsPage />} />
           <Route path="/professional/:userId" element={<ProfessionalDetail />} />
           <Route path="/services/:serviceSlug" element={<ServiceProfessionals />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
 
-          {/* Auth Routes */}
+          {/* ==================== AUTH ROUTES ==================== */}
+          
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterOptionsPage />} />
           <Route path="/register/user" element={<RegisterPage />} />
@@ -79,74 +90,174 @@ function AppContent() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/verify-otp" element={<OTPVerifyPage />} />
 
-          {/* User Routes */}
-          <Route path="/user/profile" element={<Profile />} />
-          <Route path="/user/edit-profile" element={<EditProfile />} />
-          <Route path="/user/settings" element={<Settings />} />
-          <Route path="/user/bookings" element={<BookingDashboard />} />
+          {/* ==================== PROTECTED USER ROUTES ==================== */}
+          
+          <Route
+            path="/user/profile"
+            element={
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['user']}
+              >
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/user/edit-profile"
+            element={
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['user']}
+              >
+                <EditProfile />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/user/settings"
+            element={
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['user']}
+              >
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/user/bookings"
+            element={
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['user']}
+              >
+                <BookingDashboard />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* Professional Routes */}
+          {/* ==================== PROTECTED PROFESSIONAL ROUTES ==================== */}
+          
           <Route
             path="/professional/dashboard"
             element={
-              <ProfessionalLayout>
-                <Dashboard />
-              </ProfessionalLayout>
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['professional']}
+              >
+                <ProfessionalLayout>
+                  <Dashboard />
+                </ProfessionalLayout>
+              </ProtectedRoute>
             }
           />
+          
           <Route
             path="/professional/bookings"
             element={
-              <ProfessionalLayout>
-                <Bookings />
-              </ProfessionalLayout>
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['professional']}
+              >
+                <ProfessionalLayout>
+                  <Bookings />
+                </ProfessionalLayout>
+              </ProtectedRoute>
             }
           />
+          
           <Route
             path="/professional/profile"
             element={
-              <ProfessionalLayout>
-                <ProfessionalProfile />
-              </ProfessionalLayout>
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['professional']}
+              >
+                <ProfessionalLayout>
+                  <ProfessionalProfile />
+                </ProfessionalLayout>
+              </ProtectedRoute>
             }
           />
+          
           <Route
             path="/professional/availability"
             element={
-              <ProfessionalLayout>
-                <Availability />
-              </ProfessionalLayout>
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['professional']}
+              >
+                <ProfessionalLayout>
+                  <Availability />
+                </ProfessionalLayout>
+              </ProtectedRoute>
             }
           />
+          
           <Route
             path="/professional/earnings"
             element={
-              <ProfessionalLayout>
-                <Earnings />
-              </ProfessionalLayout>
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['professional']}
+              >
+                <ProfessionalLayout>
+                  <Earnings />
+                </ProfessionalLayout>
+              </ProtectedRoute>
             }
           />
+          
           <Route
             path="/professional/reviews"
             element={
-              <ProfessionalLayout>
-                <Reviews />
-              </ProfessionalLayout>
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['professional']}
+              >
+                <ProfessionalLayout>
+                  <Reviews />
+                </ProfessionalLayout>
+              </ProtectedRoute>
             }
           />
+          
           <Route
             path="/professional/settings"
             element={
-              <ProfessionalLayout>
-                <ProfessionalSettings />
-              </ProfessionalLayout>
+              <ProtectedRoute
+                isAuthenticated={userIsAuthenticated}
+                userRole={userRole}
+                allowedRoles={['professional']}
+              >
+                <ProfessionalLayout>
+                  <ProfessionalSettings />
+                </ProfessionalLayout>
+              </ProtectedRoute>
             }
           />
+
+          {/* ==================== CATCH-ALL (404) ==================== */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
-      {/* Footer - Hide on professional routes */}
-      {!isProfessionalRoute && <Footer />}
+      {/* Footer - Hide on professional routes and auth pages */}
+      {!isProfessionalRoute && !isAuthPage && <Footer />}
     </div>
   );
 }

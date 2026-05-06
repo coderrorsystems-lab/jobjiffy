@@ -47,7 +47,7 @@ export default function Profile() {
 
           {/* Profile Content */}
           <div className="px-8 pb-8">
-            <ProfileInfo user={user} />
+             <ProfileInfo name={user.name} />
             <ProfileDetails user={user} />
             <ProfileActions onLogout={handleLogout} />
           </div>

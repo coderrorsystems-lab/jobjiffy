@@ -46,7 +46,7 @@ const features = [
     icon: Star,
     title: 'Quality Guaranteed',
     description:
-      'Transparent ratings and reviews from verified customers like you',
+      'Transparent ratings and reviews from verified Users like you',
     color: 'from-amber-500 to-amber-600',
   },
   {

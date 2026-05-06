@@ -5,7 +5,7 @@ import { Star, ThumbsUp } from 'lucide-react';
 const REVIEWS = [
   {
     id: 1,
-    customer: 'Rajesh Kumar',
+    User: 'Rajesh Kumar',
     rating: 5,
     date: '26 Apr 2024',
     service: 'AC Repair',
@@ -15,7 +15,7 @@ const REVIEWS = [
   },
   {
     id: 2,
-    customer: 'Anjali Singh',
+    User: 'Anjali Singh',
     rating: 4.5,
     date: '24 Apr 2024',
     service: 'AC Service',
@@ -25,7 +25,7 @@ const REVIEWS = [
   },
   {
     id: 3,
-    customer: 'Vikram Patel',
+    User: 'Vikram Patel',
     rating: 5,
     date: '22 Apr 2024',
     service: 'AC Maintenance',
@@ -35,7 +35,7 @@ const REVIEWS = [
   },
   {
     id: 4,
-    customer: 'Priya Sharma',
+    User: 'Priya Sharma',
     rating: 4,
     date: '20 Apr 2024',
     service: 'AC Repair',
@@ -45,7 +45,7 @@ const REVIEWS = [
   },
   {
     id: 5,
-    customer: 'Suresh Mishra',
+    User: 'Suresh Mishra',
     rating: 5,
     date: '18 Apr 2024',
     service: 'AC Installation',
@@ -83,7 +83,7 @@ export default function Reviews() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
-                  {review.customer}
+                  {review.User}
                 </h3>
                 <div className="flex items-center gap-2">
                   <div className="flex gap-0.5">

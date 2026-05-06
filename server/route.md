@@ -1,14 +1,23 @@
 # Backend Route Documentation
 
-All routes are prefixed with `/api/auth`
+---
+
+## New API Structure
+
+```
+/api/auth/              → Authentication (register, login, refresh-token)
+/api/users/             → User business logic (profile, password, bookings, reviews)
+/api/professionals/     → Professional business logic (profile, services, wallet, bookings)
+/api/admin/            → Admin business logic (approve, users, dashboard)
+```
 
 ---
 
-## 1. POST /register/user — Register a new user
+## AUTH MODULE (`/api/auth/`)
 
-**What it does:** Creates a new regular user account
+### 1. POST /auth/user/register — Register a new user
 
-**Middleware:** `validate(userRegisterSchema)` — checks the request body
+**Middleware:** `validate(userRegisterSchema)`
 
 **req.body:**
 ```json
@@ -17,7 +26,9 @@ All routes are prefixed with `/api/auth`
   "email": "valid email string",
   "password": "string (min 6 chars)",
   "phone": "E.164 format like +919999999999",
-  "address": {
+  "img": "URL string (optional)",
+  "bio": "string (max 500, optional)",
+  "location": {
     "street": "string (optional)",
     "city": "string (optional)",
     "state": "string (optional)",
@@ -38,47 +49,76 @@ All routes are prefixed with `/api/auth`
 
 ---
 
-## 2. POST /register/professional — Register a new professional
+### 2. POST /auth/login — Login (single endpoint for all roles)
 
-**What it does:** Creates a professional account that requires admin approval before login
+**Middleware:** `validate(loginSchema)`
+
+**req.body:**
+```json
+{
+  "email": "valid email string",
+  "password": "string",
+  "role": "user | professional | admin"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Login successful",
+  "user": { ... },
+  "role": "user|professional|admin",
+  "accessToken": "jwt_token",
+  "refreshToken": "jwt_token"
+}
+```
+
+**Notes:**
+- Client must send the role along with credentials
+- Professional can only login if status is "approved"
+- Admin uses hardcoded credentials from .env
+
+---
+
+### 3. POST /auth/professional/register — Register a new professional
 
 **Middleware:** `validate(professionalRegisterSchema)`
 
 **req.body:**
 ```json
 {
-  "name": "string (2-100 chars)",
+  "fullname": "string (2-100 chars)",
   "email": "valid email string",
   "password": "string (min 6 chars)",
   "phone": "E.164 format like +919999999999",
-  "address": { ... },
-  "professionalDetails": {
-    "category": "cleaning | beauty | repair | appliance | personalcare | other",
-    "services": [
-      {
-        "name": "string",
-        "description": "string",
-        "price": "number (positive)"
-      }
-    ],
-    "experience": "number (years)",
-    "bio": "string (max 500 chars)",
-    "serviceArea": {
-      "city": "string",
-      "radius": "number (positive)"
-    },
-    "kycDocuments": {
-      "aadhar": "string",
-      "pan": "string",
-      "addressProof": "string"
-    },
-    "bankDetails": {
-      "accountNumber": "string",
-      "ifsc": "string",
-      "accountHolderName": "string",
-      "upiId": "string (optional)"
+  "streetAddress": "string (optional)",
+  "city": "string (required)",
+  "state": "string (optional)",
+  "zipCode": "string (optional)",
+  "collegeName": "string (optional)",
+  "department": "string (optional)",
+  "yearOfGraduation": "number (optional)",
+  "collegeEmail": "string (optional)",
+  "collegeIdPhoto": "URL string (optional)",
+  "bio": "string (max 500, optional)",
+  "services": [
+    {
+      "category": "cleaning | beauty | repair | appliance | personalcare | other",
+      "serviceName": "string",
+      "desc": "string (optional)",
+      "price": "number (positive)"
     }
-  }
+  ],
+  "category": "cleaning | beauty | repair | appliance | personalcare | other",
+  "experience": "number (optional)",
+  "kycDocuments": {
+    "aadhar": "string (required)",
+    "pan": "string (required)"
+  },
+  "accountNumber": "string (optional)",
+  "accountHolderName": "string (optional)",
+  "ifscCode": "string (optional)",
+  "upiId": "string (optional)"
 }
 ```
 
@@ -86,18 +126,13 @@ All routes are prefixed with `/api/auth`
 ```json
 {
   "message": "Professional registered successfully. Pending admin approval.",
-  "user": {
-    ...,
-    "status": "pending"
-  }
+  "professional": { ... }
 }
 ```
 
 ---
 
-## 3. POST /login — Email/password login
-
-**What it does:** Logs in a user/professional with email and password
+### 4. POST /auth/professional/login — Login as professional
 
 **Middleware:** `validate(loginSchema)`
 
@@ -113,7 +148,7 @@ All routes are prefixed with `/api/auth`
 ```json
 {
   "message": "Login successful",
-  "user": { ... },
+  "professional": { ... },
   "accessToken": "jwt_token",
   "refreshToken": "jwt_token"
 }
@@ -123,9 +158,31 @@ All routes are prefixed with `/api/auth`
 
 ---
 
-## 4. POST /refresh-token — Refresh expired access token
+### 5. POST /auth/admin/login — Admin login
 
-**What it does:** Issues a new access token using a valid refresh token
+**Middleware:** `validate(loginSchema)`
+
+**req.body:**
+```json
+{
+  "email": "admin@jobjiffy.com",
+  "password": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Admin login successful",
+  "admin": { ... },
+  "accessToken": "jwt_token",
+  "refreshToken": "jwt_token"
+}
+```
+
+---
+
+### 6. POST /auth/refresh-token — Refresh expired access token
 
 **Middleware:** `validate(refreshTokenSchema)`
 
@@ -147,118 +204,30 @@ All routes are prefixed with `/api/auth`
 
 ---
 
-## 5. POST /logout — Logout current user
+## USERS MODULE (`/api/users/`)
 
-**What it does:** Clears the refresh token from the database
+All routes use `authenticate` middleware.
 
-**Middleware:** `authenticate` — requires valid JWT access token
-
-**Header:** `Authorization: Bearer <accessToken>`
-
-**req.body:** None
+### 1. GET /users/profile — Get user profile
 
 **Response:**
 ```json
-{
-  "message": "Logout successful"
-}
+{ "user": { ... } }
 ```
 
 ---
 
-## 6. POST /admin/login — Admin login
+### 2. PUT /users/profile — Update user profile
 
-**What it does:** Logs in the hardcoded admin (email + password from .env)
-
-**Middleware:** `validate(loginSchema)`
-
-**req.body:**
-```json
-{
-  "email": "admin@jobjiffy.com",
-  "password": "string"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Admin login successful",
-  "user": { ... },
-  "accessToken": "jwt_token",
-  "refreshToken": "jwt_token"
-}
-```
-
-**Notes:** If admin doesn't exist in DB, creates one on first login
-
----
-
-## 7. GET /profile — Get current user profile
-
-**What it does:** Returns the logged-in user's full profile
-
-**Middleware:** `authenticate`
-
-**Header:** `Authorization: Bearer <accessToken>`
-
-**Response:**
-```json
-{
-    "user": {
-        "address": {
-            "street": "MG Road",
-            "city": "Indore",
-            "state": "Madhya Pradesh",
-            "pincode": "452001",
-            "country": "India"
-        },
-        "professionalDetails": {
-            "category": null,
-            "status": "pending",
-            "isAvailable": false,
-            "rating": 0,
-            "totalReviews": 0,
-            "walletBalance": 0,
-            "totalEarnings": 0,
-            "services": []
-        },
-        "_id": "69f214118f1493e58591f203",
-        "name": "Jatin Patidar",
-        "email": "jatinpatidar@example.com",
-        "phone": "+919876543210",
-        "role": "user",
-        "isPhoneVerified": false,
-        "isEmailVerified": false,
-        "isActive": true,
-        "profilePhoto": null,
-        "lastLogin": "2026-05-03T05:42:40.887Z",
-        "createdAt": "2026-04-29T14:22:09.571Z",
-        "updatedAt": "2026-05-03T05:42:41.126Z",
-        "__v": 0
-    }
-}
-```
-
----
-
-## 8. PUT /profile — Update user profile
-
-**What it does:** Updates name, address, or profile photo of the logged-in user
-
-**Middleware:** `authenticate`
+**Middleware:** `validate(userUpdateProfileSchema)`
 
 **req.body:**
 ```json
 {
   "name": "string (optional)",
-  "address": {
-    "street": "string (optional)",
-    "city": "string (optional)",
-    "state": "string (optional)",
-    "pincode": "string (optional)"
-  },
-  "profilePhoto": "URL string (optional)"
+  "bio": "string (optional)",
+  "img": "URL string (optional)",
+  "location": { ... }
 }
 ```
 
@@ -272,11 +241,9 @@ All routes are prefixed with `/api/auth`
 
 ---
 
-## 9. POST /change-password — Change password
+### 3. POST /users/change-password — Change password
 
-**What it does:** Changes the logged-in user's password after verifying current password
-
-**Middleware:** `authenticate`
+**Middleware:** `validate(userChangePasswordSchema)`
 
 **req.body:**
 ```json
@@ -288,9 +255,289 @@ All routes are prefixed with `/api/auth`
 
 **Response:**
 ```json
+{ "message": "Password changed successfully" }
+```
+
+---
+
+### 4. GET /users/bookings — Get user bookings
+
+**Response:**
+```json
+{ "bookings": [] }
+```
+
+---
+
+### 5. GET /users/reviews — Get user reviews
+
+**Response:**
+```json
+{ "reviews": [] }
+```
+
+---
+
+### 6. POST /users/logout — Logout user
+
+**Response:**
+```json
+{ "message": "Logout successful" }
+```
+
+---
+
+## PROFESSIONALS MODULE (`/api/professionals/`)
+
+All routes use `authenticate` middleware.
+
+### 1. GET /professionals/profile — Get professional profile
+
+**Response:**
+```json
+{ "professional": { ... } }
+```
+
+---
+
+### 2. PUT /professionals/profile — Update professional profile
+
+**Middleware:** `validate(professionalUpdateProfileSchema)`
+
+**req.body:** (all fields optional)
+```json
 {
-  "message": "Password changed successfully"
+  "fullname": "string",
+  "bio": "string",
+  "streetAddress": "string",
+  "city": "string",
+  "state": "string",
+  "zipCode": "string",
+  "collegeName": "string",
+  "department": "string",
+  "yearOfGraduation": "number",
+  "collegeEmail": "string",
+  "collegeIdPhoto": "URL string",
+  "accountNumber": "string",
+  "accountHolderName": "string",
+  "ifscCode": "string",
+  "upiId": "string"
 }
+```
+
+---
+
+### 3. POST /professionals/change-password — Change password
+
+**Middleware:** `validate(professionalChangePasswordSchema)`
+
+**req.body:**
+```json
+{
+  "currentPassword": "string",
+  "newPassword": "string (min 6 chars)"
+}
+```
+
+---
+
+### 4. GET /professionals/services — Get all services
+
+**Response:**
+```json
+{ "services": [...] }
+```
+
+---
+
+### 5. POST /professionals/services — Add service
+
+**Middleware:** `validate(addServiceSchema)`
+
+**req.body:**
+```json
+{
+  "category": "cleaning | beauty | repair | appliance | personalcare | other",
+  "serviceName": "string",
+  "desc": "string (optional)",
+  "price": "number (positive)"
+}
+```
+
+---
+
+### 6. PUT /professionals/services/:id — Update service
+
+**Middleware:** `validate(updateServiceSchema)`
+
+**req.body:** (partial update)
+```json
+{
+  "serviceName": "string",
+  "desc": "string",
+  "price": "number"
+}
+```
+
+---
+
+### 7. DELETE /professionals/services/:id — Delete service
+
+---
+
+### 8. POST /professionals/availability — Toggle availability
+
+**Response:**
+```json
+{
+  "message": "Availability enabled/disabled",
+  "isAvailable": true/false
+}
+```
+
+---
+
+### 9. GET /professionals/wallet — Get wallet info
+
+**Response:**
+```json
+{
+  "wallet": {
+    "walletBalance": 0,
+    "totalEarnings": 0,
+    "rating": 0,
+    "totalReviews": 0
+  }
+}
+```
+
+---
+
+### 10. GET /professionals/bookings — Get assigned bookings
+
+**Response:**
+```json
+{ "bookings": [] }
+```
+
+---
+
+### 11. POST /professionals/logout — Logout professional
+
+**Response:**
+```json
+{ "message": "Logout successful" }
+```
+
+---
+
+## ADMIN MODULE (`/api/admin/`)
+
+All routes use `authenticate` + `authorize('admin')` middleware.
+
+### 1. GET /admin/profile — Get admin profile
+
+**Response:**
+```json
+{ "admin": { ... } }
+```
+
+---
+
+### 2. GET /admin/professionals — List all professionals
+
+**Query params:** `?status=pending|approved|rejected`
+
+**Response:**
+```json
+{ "professionals": [...] }
+```
+
+---
+
+### 3. GET /admin/professionals/:id — Get professional details
+
+---
+
+### 4. PUT /admin/professionals/:id/approve — Approve professional
+
+**Response:**
+```json
+{
+  "message": "Professional approved successfully",
+  "professional": { ... }
+}
+```
+
+---
+
+### 5. PUT /admin/professionals/:id/reject — Reject professional
+
+**Response:**
+```json
+{
+  "message": "Professional rejected",
+  "professional": { ... }
+}
+```
+
+---
+
+### 6. GET /admin/users — List all users
+
+**Query params:** `?isActive=true|false`
+
+**Response:**
+```json
+{ "users": [...] }
+```
+
+---
+
+### 7. GET /admin/users/:id — Get user details
+
+---
+
+### 8. PUT /admin/users/:id/block — Block/unblock user
+
+**Middleware:** `validate(blockUserSchema)`
+
+**req.body:**
+```json
+{ "isActive": false }
+```
+
+**Response:**
+```json
+{
+  "message": "User blocked/unblocked",
+  "user": { ... }
+}
+```
+
+---
+
+### 9. GET /admin/dashboard — Get dashboard stats
+
+**Response:**
+```json
+{
+  "totalUsers": 0,
+  "totalProfessionals": 0,
+  "approvedProfessionals": 0,
+  "pendingProfessionals": 0,
+  "totalBookings": 0,
+  "totalRevenue": 0
+}
+```
+
+---
+
+### 10. POST /admin/logout — Logout admin
+
+**Response:**
+```json
+{ "message": "Logout successful" }
 ```
 
 ---
@@ -301,18 +548,7 @@ All routes are prefixed with `/api/auth`
 |------------|---------------|
 | `validate(schema)` | Checks req.body against a Zod schema. Returns 400 if invalid. |
 | `authenticate` | Reads JWT from `Authorization: Bearer <token>` header, verifies it, loads user into `req.user`. Returns 401 if missing/invalid/expired. |
-| `authorize(roles)` | (Available but not used in auth routes) — restricts access to specific roles. |
-| `optionalAuth` | (Available but not used) — same as authenticate but continues even if no token. |
-
----
-
-## Role-Based Access
-
-| Role | Can Access |
-|------|------------|
-| `user` | /register/user, /login, /refresh-token, /logout, /profile, /change-password |
-| `professional` | Same as user + /register/professional (before approval) |
-| `admin` | All user endpoints + /admin/login |
+| `authorize(roles)` | Restricts access to specific roles (e.g., 'admin'). Returns 403 if not authorized. |
 
 ---
 
@@ -320,5 +556,6 @@ All routes are prefixed with `/api/auth`
 
 - **Access Token:** 15 minutes expiry (configurable via JWT_ACCESS_EXPIRE in .env)
 - **Refresh Token:** 7 days expiry (configurable via JWT_REFRESH_EXPIRE in .env)
+- **JWT Payload includes:** `userId`, `email`, `role` (user/professional/admin), `model` (User/Professional/Admin)
 - **Store refresh token** in httpOnly cookie or secure storage on client
 - **Use refresh token** at `/api/auth/refresh-token` to get new access token when expired

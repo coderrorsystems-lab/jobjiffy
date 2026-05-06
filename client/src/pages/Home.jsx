@@ -68,6 +68,7 @@ export default function Home() {
       {/* App Download */}
       <motion.section variants={itemVariants} className="relative z-10 py-12 md:py-16">
         <AppDownloadSection />
+        
       </motion.section>
     </motion.div>
   );
