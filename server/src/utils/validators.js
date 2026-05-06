@@ -52,52 +52,12 @@ export const professionalRegisterSchema = z.object({
 
 export const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(1, 'Password is required')
+  password: z.string().min(1, 'Password is required'),
+  role: z.enum(['user', 'professional', 'admin'])
 });
 
 export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required')
-});
-
-export const userChangePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(6)
-});
-
-export const userUpdateProfileSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
-  bio: z.string().max(500).optional(),
-  img: z.string().url().optional(),
-  location: z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    pincode: z.string().optional()
-  }).optional()
-});
-
-export const professionalUpdateProfileSchema = z.object({
-  fullname: z.string().min(2).max(100).optional(),
-  bio: z.string().max(500).optional(),
-  streetAddress: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zipCode: z.string().optional(),
-  collegeName: z.string().optional(),
-  department: z.string().optional(),
-  yearOfGraduation: z.number().int().min(1900).max(2100).optional(),
-  collegeEmail: z.string().email().optional(),
-  collegeIdPhoto: z.string().url().optional(),
-  services: z.array(z.object({
-    category: z.enum(['cleaning', 'beauty', 'repair', 'appliance', 'personalcare', 'other']),
-    serviceName: z.string().min(1),
-    desc: z.string().optional(),
-    price: z.number().positive()
-  })).min(1).optional(),
-  accountNumber: z.string().optional(),
-  accountHolderName: z.string().optional(),
-  ifscCode: z.string().optional(),
-  upiId: z.string().optional()
 });
 
 export const validate = (schema) => (req, res, next) => {

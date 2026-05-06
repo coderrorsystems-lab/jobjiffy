@@ -21,11 +21,11 @@ export const registerUser = async (req, res, next) => {
   }
 };
 
-export const loginUser = async (req, res, next) => {
+export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    const user = await authService.loginUser(email, password);
-    const tokens = authService.generateTokens(user, 'user', 'User');
+    const { email, password, role } = req.body;
+    const { user, role: userRole, model } = await authService.login(email, password, role);
+    const tokens = authService.generateTokens(user, userRole, model);
 
     user.refreshToken = tokens.refreshToken;
     await user.save();
@@ -33,6 +33,7 @@ export const loginUser = async (req, res, next) => {
     res.json({
       message: 'Login successful',
       user,
+      role: userRole,
       ...tokens
     });
   } catch (error) {
@@ -64,25 +65,6 @@ export const registerProfessional = async (req, res, next) => {
   }
 };
 
-export const loginProfessional = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    const professional = await authService.loginProfessional(email, password);
-    const tokens = authService.generateTokens(professional, 'professional', 'Professional');
-
-    professional.refreshToken = tokens.refreshToken;
-    await professional.save();
-
-    res.json({
-      message: 'Login successful',
-      professional,
-      ...tokens
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const logoutProfessional = async (req, res, next) => {
   try {
     await authService.logout(req.user.userId, 'Professional');
@@ -93,25 +75,6 @@ export const logoutProfessional = async (req, res, next) => {
 };
 
 // ==================== ADMIN ====================
-
-export const loginAdmin = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    const admin = await authService.loginAdmin(email, password);
-    const tokens = authService.generateTokens(admin, 'admin', 'Admin');
-
-    admin.refreshToken = tokens.refreshToken;
-    await admin.save();
-
-    res.json({
-      message: 'Admin login successful',
-      admin,
-      ...tokens
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 export const logoutAdmin = async (req, res, next) => {
   try {

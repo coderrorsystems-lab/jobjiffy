@@ -14,18 +14,13 @@ const router = express.Router();
 
 router.post('/refresh-token', validate(refreshTokenSchema), authController.refreshToken);
 
-// ==================== USER ROUTES ====================
+// ==================== AUTH ====================
+
+router.post('/login', validate(loginSchema), authController.login);
+
+// ==================== REGISTRATION ====================
 
 router.post('/user/register', validate(userRegisterSchema), authController.registerUser);
-router.post('/user/login', validate(loginSchema), authController.loginUser);
-
-// ==================== PROFESSIONAL ROUTES ====================
-
 router.post('/professional/register', validate(professionalRegisterSchema), authController.registerProfessional);
-router.post('/professional/login', validate(loginSchema), authController.loginProfessional);
-
-// ==================== ADMIN ROUTES ====================
-
-router.post('/admin/login', validate(loginSchema), authController.loginAdmin);
 
 export default router;

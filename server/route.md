@@ -49,7 +49,7 @@
 
 ---
 
-### 2. POST /auth/user/login — Login as user
+### 2. POST /auth/login — Login (single endpoint for all roles)
 
 **Middleware:** `validate(loginSchema)`
 
@@ -57,7 +57,8 @@
 ```json
 {
   "email": "valid email string",
-  "password": "string"
+  "password": "string",
+  "role": "user | professional | admin"
 }
 ```
 
@@ -66,10 +67,16 @@
 {
   "message": "Login successful",
   "user": { ... },
+  "role": "user|professional|admin",
   "accessToken": "jwt_token",
   "refreshToken": "jwt_token"
 }
 ```
+
+**Notes:**
+- Client must send the role along with credentials
+- Professional can only login if status is "approved"
+- Admin uses hardcoded credentials from .env
 
 ---
 

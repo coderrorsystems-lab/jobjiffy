@@ -26,7 +26,80 @@ export const generateTokens = (user, role, model) => {
   return { accessToken, refreshToken };
 };
 
-// ==================== USER ====================
+// ==================== LOGIN (Single Endpoint) ====================
+
+export const login = async (email, password, role) => {
+  switch (role) {
+    case 'user': {
+      const user = await User.findOne({ email }).select('+password');
+      if (!user) {
+        throw new Error('Invalid credentials');
+      }
+      if (!user.isActive) {
+        throw new Error('Account is disabled');
+      }
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        throw new Error('Invalid credentials');
+      }
+      user.lastLogin = new Date();
+      await user.save();
+      return { user, role: 'user', model: 'User' };
+    }
+
+    case 'professional': {
+      const professional = await Professional.findOne({ email }).select('+password');
+      if (!professional) {
+        throw new Error('Invalid credentials');
+      }
+      if (!professional.isActive) {
+        throw new Error('Account is disabled');
+      }
+      if (professional.status !== 'approved') {
+        throw new Error('Account pending approval');
+      }
+      const isMatch = await professional.comparePassword(password);
+      if (!isMatch) {
+        throw new Error('Invalid credentials');
+      }
+      professional.lastLogin = new Date();
+      await professional.save();
+      return { user: professional, role: 'professional', model: 'Professional' };
+    }
+
+    case 'admin': {
+      const adminConfig = getAdminCredentials();
+      if (email !== adminConfig.email) {
+        throw new Error('Invalid credentials');
+      }
+      const isMatch = await bcrypt.compare(password, adminConfig.password);
+      if (!isMatch) {
+        throw new Error('Invalid credentials');
+      }
+      let admin = await Admin.findOne({ email });
+      if (!admin) {
+        admin = new Admin({
+          name: 'Admin',
+          email,
+          phone: '+911234567890',
+          password: adminConfig.password,
+          isActive: true,
+          isSuperAdmin: true,
+          permissions: ['*']
+        });
+        await admin.save();
+      }
+      admin.lastLogin = new Date();
+      await admin.save();
+      return { user: admin, role: 'admin', model: 'Admin' };
+    }
+
+    default:
+      throw new Error('Invalid role');
+  }
+};
+
+// ==================== REGISTRATION ====================
 
 export const registerUser = async (data) => {
   const existingUser = await User.findOne({ 
@@ -55,54 +128,6 @@ export const registerUser = async (data) => {
   await user.save();
   return user;
 };
-
-export const loginUser = async (email, password) => {
-  const user = await User.findOne({ email }).select('+password');
-  
-  if (!user) {
-    throw new Error('Invalid email or password');
-  }
-
-  if (!user.isActive) {
-    throw new Error('Account is disabled');
-  }
-
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    throw new Error('Invalid email or password');
-  }
-
-  user.lastLogin = new Date();
-  await user.save();
-
-  return user;
-};
-
-export const getUserById = async (userId) => {
-  return User.findById(userId);
-};
-
-export const updateUser = async (userId, updates) => {
-  return User.findByIdAndUpdate(userId, updates, { new: true });
-};
-
-export const changeUserPassword = async (userId, currentPassword, newPassword) => {
-  const user = await User.findById(userId).select('+password');
-  
-  if (!user) {
-    throw new Error('User not found');
-  }
-
-  const isMatch = await user.comparePassword(currentPassword);
-  if (!isMatch) {
-    throw new Error('Current password is incorrect');
-  }
-
-  user.password = newPassword;
-  await user.save();
-};
-
-// ==================== PROFESSIONAL ====================
 
 export const registerProfessional = async (data) => {
   const existingProfessional = await Professional.findOne({ 
@@ -149,100 +174,7 @@ export const registerProfessional = async (data) => {
   return professional;
 };
 
-export const loginProfessional = async (email, password) => {
-  const professional = await Professional.findOne({ email }).select('+password');
-  
-  if (!professional) {
-    throw new Error('Invalid email or password');
-  }
-
-  if (!professional.isActive) {
-    throw new Error('Account is disabled');
-  }
-
-  if (professional.status !== 'approved') {
-    throw new Error('Your account is pending approval');
-  }
-
-  const isMatch = await professional.comparePassword(password);
-  if (!isMatch) {
-    throw new Error('Invalid email or password');
-  }
-
-  professional.lastLogin = new Date();
-  await professional.save();
-
-  return professional;
-};
-
-export const getProfessionalById = async (userId) => {
-  return Professional.findById(userId);
-};
-
-export const updateProfessional = async (userId, updates) => {
-  return Professional.findByIdAndUpdate(userId, updates, { new: true });
-};
-
-export const changeProfessionalPassword = async (userId, currentPassword, newPassword) => {
-  const professional = await Professional.findById(userId).select('+password');
-  
-  if (!professional) {
-    throw new Error('Professional not found');
-  }
-
-  const isMatch = await professional.comparePassword(currentPassword);
-  if (!isMatch) {
-    throw new Error('Current password is incorrect');
-  }
-
-  professional.password = newPassword;
-  await professional.save();
-};
-
-// ==================== ADMIN ====================
-
-export const loginAdmin = async (email, password) => {
-  const adminConfig = getAdminCredentials();
-
-  if (email !== adminConfig.email) {
-    throw new Error('Invalid admin credentials');
-  }
-
-  const isMatch = await bcrypt.compare(password, adminConfig.password);
-  if (!isMatch) {
-    throw new Error('Invalid admin credentials');
-  }
-
-  let admin = await Admin.findOne({ email });
-  
-  if (!admin) {
-    admin = new Admin({
-      name: 'Admin',
-      email,
-      phone: '+911234567890',
-      password: adminConfig.password,
-      isActive: true,
-      isSuperAdmin: true,
-      permissions: ['*']
-    });
-    await admin.save();
-  }
-
-  if (!admin.isActive) {
-    throw new Error('Admin account is disabled');
-  }
-
-  admin.lastLogin = new Date();
-  await admin.save();
-
-  return admin;
-};
-
-export const getAdminById = async (userId) => {
-  return Admin.findById(userId);
-};
-
-// ==================== COMMON ====================
+// ==================== TOKEN REFRESH ====================
 
 export const refreshAccessToken = async (refreshToken) => {
   try {
@@ -280,6 +212,8 @@ export const refreshAccessToken = async (refreshToken) => {
   }
 };
 
+// ==================== LOGOUT ====================
+
 export const logout = async (userId, model) => {
   let Model;
   switch (model) {
@@ -297,6 +231,8 @@ export const logout = async (userId, model) => {
   }
   await Model.findByIdAndUpdate(userId, { refreshToken: null });
 };
+
+// ==================== ADMIN ====================
 
 export const getAdminCredentials = () => {
   return {
