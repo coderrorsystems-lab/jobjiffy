@@ -5,8 +5,8 @@ import { generateOTP, storeOTP, sendOTPEmail } from '../../utils/otp.js';
 
 export const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, phone, img, bio, location } = req.body;
-    const user = await authService.registerUser({ name, email, password, phone, img, bio, location });
+    const { name, email, password, phone, otp, img, bio, location } = req.body;
+    const user = await authService.registerUser({ name, email, password, phone, img, bio, location }, otp);
     const tokens = authService.generateTokens(user, 'user', 'User');
 
     user.refreshToken = tokens.refreshToken;
@@ -55,7 +55,8 @@ export const logoutUser = async (req, res, next) => {
 
 export const registerProfessional = async (req, res, next) => {
   try {
-    const professional = await authService.registerProfessional(req.body);
+    const { otp, ...data } = req.body;
+    const professional = await authService.registerProfessional(data, otp);
 
     res.status(201).json({
       message: 'Professional registered successfully. Pending admin approval.',
@@ -106,32 +107,14 @@ export const refreshToken = async (req, res, next) => {
 
 export const sendOtp = async (req, res, next) => {
   try {
-    const email = req.user.email;
-    const role = req.user.role;
+    const { email } = req.body;
 
     const otp = generateOTP();
     storeOTP(email, otp);
     await sendOTPEmail(email, otp);
 
     res.json({ 
-      message: 'OTP sent to your email',
-      role
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const verifyOtp = async (req, res, next) => {
-  try {
-    const email = req.user.email;
-    const { otp } = req.body;
-
-    const result = await authService.verifyEmailOTP(email, otp, req.user.model);
-
-    res.json({
-      message: 'Email verified successfully',
-      isEmailVerified: result.isEmailVerified
+      message: 'OTP sent to your email'
     });
   } catch (error) {
     next(error);

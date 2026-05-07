@@ -3,7 +3,7 @@ import { config } from '../config/index.js';
 
 const otpStore = new Map();
 
-const OTP_EXPIRY = 5 * 60 * 1000;
+const OTP_EXPIRY = 15 * 60 * 1000;
 
 export const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();

@@ -34,10 +34,16 @@ Both use ES modules (`"type": "module"` in package.json).
 | `/api/auth/profile` | PUT | Update profile |
 | `/api/auth/change-password` | POST | Change password |
 
-## Email OTP Verification
+## Email OTP Verification (During Registration)
 
-- **Send OTP**: `POST /api/auth/send-otp` - Requires JWT token in header, sends OTP to user's email
-- **Verify OTP**: `POST /api/auth/verify-otp` - Requires JWT + `{ otp: "123456" }`, updates `isEmailVerified: true` in DB
+**Flow**:
+1. User enters email → `POST /api/auth/send-otp { email }` → receives OTP in email
+2. User enters OTP + all details → `POST /api/auth/user/register { ..., otp }` → verifies OTP, then registers
+
+**Endpoints**:
+- `POST /api/auth/send-otp` - Body: `{ email }` - Sends OTP to email (15 min expiry)
+- `POST /api/auth/user/register` - Body: `{ name, email, password, phone, otp, ... }` - Verifies OTP first, then registers
+- `POST /api/auth/professional/register` - Body: `{ ..., otp }` - Verifies OTP first, then registers
 
 SMTP config in `.env`:
 ```

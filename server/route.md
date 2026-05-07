@@ -26,6 +26,7 @@
   "email": "valid email string",
   "password": "string (min 6 chars)",
   "phone": "E.164 format like +919999999999",
+  "otp": "6-digit string (REQUIRED)",
   "img": "URL string (optional)",
   "bio": "string (max 500, optional)",
   "location": {
@@ -91,6 +92,7 @@
   "email": "valid email string",
   "password": "string (min 6 chars)",
   "phone": "E.164 format like +919999999999",
+  "otp": "6-digit string (REQUIRED)",
   "streetAddress": "string (optional)",
   "city": "string (required)",
   "state": "string (optional)",
@@ -132,57 +134,30 @@
 
 ---
 
-### 4. POST /auth/professional/login — Login as professional
+### 4. POST /auth/send-otp — Send OTP for email verification
 
-**Middleware:** `validate(loginSchema)`
+**Middleware:** `validate(sendOtpSchema)`
 
 **req.body:**
 ```json
 {
-  "email": "valid email string",
-  "password": "string"
+  "email": "valid email string"
 }
 ```
 
 **Response:**
 ```json
-{
-  "message": "Login successful",
-  "professional": { ... },
-  "accessToken": "jwt_token",
-  "refreshToken": "jwt_token"
-}
+{ "message": "OTP sent to your email" }
 ```
 
-**Notes:** Professionals can only login if their status is "approved"
+**Notes:**
+- OTP expires in 15 minutes
+- Use this before registration to get OTP
+- Then include OTP in registration request
 
 ---
 
-### 5. POST /auth/admin/login — Admin login
-
-**Middleware:** `validate(loginSchema)`
-
-**req.body:**
-```json
-{
-  "email": "admin@jobjiffy.com",
-  "password": "string"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Admin login successful",
-  "admin": { ... },
-  "accessToken": "jwt_token",
-  "refreshToken": "jwt_token"
-}
-```
-
----
-
-### 6. POST /auth/refresh-token — Refresh expired access token
+### 5. POST /auth/refresh-token — Refresh expired access token
 
 **Middleware:** `validate(refreshTokenSchema)`
 

@@ -102,7 +102,12 @@ export const login = async (email, password, role) => {
 
 // ==================== REGISTRATION ====================
 
-export const registerUser = async (data) => {
+export const registerUser = async (data, otp) => {
+  const otpResult = verifyOTP(data.email, otp);
+  if (!otpResult.valid) {
+    throw new Error(otpResult.error);
+  }
+
   const existingUser = await User.findOne({ 
     $or: [{ email: data.email }, { phone: data.phone }] 
   });
@@ -123,14 +128,20 @@ export const registerUser = async (data) => {
     password: data.password,
     img: data.img,
     bio: data.bio,
-    location: data.location
+    location: data.location,
+    isEmailVerified: true
   });
 
   await user.save();
   return user;
 };
 
-export const registerProfessional = async (data) => {
+export const registerProfessional = async (data, otp) => {
+  const otpResult = verifyOTP(data.email, otp);
+  if (!otpResult.valid) {
+    throw new Error(otpResult.error);
+  }
+
   const existingProfessional = await Professional.findOne({ 
     $or: [{ email: data.email }, { phone: data.phone }] 
   });
@@ -168,7 +179,8 @@ export const registerProfessional = async (data) => {
     ifscCode: data.ifscCode,
     upiId: data.upiId,
     status: 'pending',
-    isAvailable: false
+    isAvailable: false,
+    isEmailVerified: true
   });
 
   await professional.save();
@@ -240,40 +252,4 @@ export const getAdminCredentials = () => {
     email: config.admin.email,
     password: config.admin.password
   };
-};
-
-// ==================== EMAIL OTP VERIFICATION ====================
-
-export const verifyEmailOTP = async (email, otp, model) => {
-  const otpResult = verifyOTP(email, otp);
-  if (!otpResult.valid) {
-    throw new Error(otpResult.error);
-  }
-
-  let Model;
-  switch (model) {
-    case 'User':
-      Model = User;
-      break;
-    case 'Professional':
-      Model = Professional;
-      break;
-    case 'Admin':
-      Model = Admin;
-      break;
-    default:
-      throw new Error('Invalid model');
-  }
-
-  const user = await Model.findOneAndUpdate(
-    { email },
-    { isEmailVerified: true },
-    { new: true }
-  );
-
-  if (!user) {
-    throw new Error('User not found');
-  }
-
-  return { isEmailVerified: user.isEmailVerified };
 };

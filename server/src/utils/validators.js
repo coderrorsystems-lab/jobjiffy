@@ -7,6 +7,7 @@ export const userRegisterSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   phone: z.string().regex(phoneRegex, 'Invalid phone number format (use +91...)'),
+  otp: z.string().length(6, 'OTP must be 6 digits'),
   img: z.string().url().optional(),
   bio: z.string().max(500).optional(),
   location: z.object({
@@ -22,6 +23,7 @@ export const professionalRegisterSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   phone: z.string().regex(phoneRegex, 'Invalid phone number format (use +91...)'),
+  otp: z.string().length(6, 'OTP must be 6 digits'),
   streetAddress: z.string().optional(),
   city: z.string().min(1, 'City is required'),
   state: z.string().optional(),
@@ -62,6 +64,10 @@ export const refreshTokenSchema = z.object({
 
 export const verifyOtpSchema = z.object({
   otp: z.string().length(6, 'OTP must be 6 digits')
+});
+
+export const sendOtpSchema = z.object({
+  email: z.string().email('Invalid email address')
 });
 
 export const validate = (schema) => (req, res, next) => {
