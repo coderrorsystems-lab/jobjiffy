@@ -1,25 +1,28 @@
 import { Navigate } from 'react-router-dom';
+import { getUserRole, isAuthenticated } from './authUtils';
 
 /**
  * ProtectedRoute Component
  * Protects routes that require authentication
  * 
  * Props:
- * - isAuthenticated: boolean - whether user is logged in
- * - userRole: string - 'user' or 'professional'
  * - allowedRoles: array - roles allowed to access this route
  * - children: component to render if authorized
  * - redirectTo: string - where to redirect if not authorized (default: '/login')
+ * 
+ * Note: Role is checked dynamically from localStorage, not from props
  */
 export function ProtectedRoute({ 
-  isAuthenticated, 
-  userRole, 
   allowedRoles = [], 
   children,
   redirectTo = '/login'
 }) {
+  // Check auth state dynamically (not from props) so it updates after login
+  const userIsAuthenticated = isAuthenticated();
+  const userRole = getUserRole();
+
   // If not authenticated, redirect to login
-  if (!isAuthenticated) {
+  if (!userIsAuthenticated) {
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -29,6 +32,8 @@ export function ProtectedRoute({
     // Redirect based on their actual role
     if (userRole === 'professional') {
       return <Navigate to="/professional/dashboard" replace />;
+    } else if (userRole === 'admin') {
+      return <Navigate to="/admin" replace />;
     } else {
       return <Navigate to="/user/bookings" replace />;
     }

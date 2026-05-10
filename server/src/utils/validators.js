@@ -7,6 +7,7 @@ export const userRegisterSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   phone: z.string().regex(phoneRegex, 'Invalid phone number format (use +91...)'),
+  otp: z.string().length(6, 'OTP must be 6 digits'),
   img: z.string().url().optional(),
   bio: z.string().max(500).optional(),
   location: z.object({
@@ -22,6 +23,7 @@ export const professionalRegisterSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   phone: z.string().regex(phoneRegex, 'Invalid phone number format (use +91...)'),
+  otp: z.string().length(6, 'OTP must be 6 digits'),
   streetAddress: z.string().optional(),
   city: z.string().min(1, 'City is required'),
   state: z.string().optional(),
@@ -33,17 +35,13 @@ export const professionalRegisterSchema = z.object({
   collegeIdPhoto: z.string().url().optional(),
   bio: z.string().max(500).optional(),
   services: z.array(z.object({
-    category: z.enum(['cleaning', 'beauty', 'repair', 'appliance', 'personalcare', 'other']),
+    // category: z.enum(['cleaning', 'beauty', 'repair', 'appliance', 'personalcare', 'other']),
     serviceName: z.string().min(1, 'Service name is required'),
     desc: z.string().optional(),
     price: z.number().positive('Price must be positive')
   })).min(1, 'At least one service required'),
-  category: z.enum(['cleaning', 'beauty', 'repair', 'appliance', 'personalcare', 'other']),
-  experience: z.number().int().min(0).optional(),
-  kycDocuments: z.object({
-    aadhar: z.string().min(1, 'Aadhar is required'),
-    pan: z.string().min(1, 'PAN is required')
-  }),
+ 
+  
   accountNumber: z.string().optional(),
   accountHolderName: z.string().optional(),
   ifscCode: z.string().optional(),
@@ -51,23 +49,33 @@ export const professionalRegisterSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email(),
   password: z.string().min(1, 'Password is required'),
-  role: z.enum(['user', 'professional', 'admin']).optional().default('user')
+  role: z.enum(['user', 'professional', 'admin'])
 });
 
 export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required')
 });
 
+export const verifyOtpSchema = z.object({
+  otp: z.string().length(6, 'OTP must be 6 digits')
+});
+
+export const sendOtpSchema = z.object({
+  email: z.string().email('Invalid email address')
+});
+
 export const validate = (schema) => (req, res, next) => {
   try {
     schema.parse(req.body);
+    console.log('Validating request body:', req.body);
+     
     next();
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
-        message: 'Validation falied',
+        message: 'Validation failed',
         errors: error.errors.map(err => ({
           field: err.path.join('.'),
           message: err.message

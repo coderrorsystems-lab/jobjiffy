@@ -20,6 +20,7 @@ export default function UserRegister() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   
   // OTP States
   const [otpData, setOtpData] = useState({
@@ -58,15 +59,16 @@ export default function UserRegister() {
       return;
     }
 
-    if (!validateEmail(formData.email)) {
+    if (!validateEmail(formData.email.trim())) {
       setOtpError('Please enter a valid email address');
       return;
     }
 
     setOtpData(prev => ({ ...prev, otpLoading: true }));
     try {
-      await sendOTP(formData.email);
-      setOtpSuccess('OTP sent to your email! Check your inbox.');
+      console.log('Requesting OTP for:', formData.email.trim());
+      await sendOTP(formData.email.trim());
+      setOtpSuccess('OTP sent to your email! Check your inbox and spam folder.');
       setOtpData(prev => ({ 
         ...prev, 
         isOtpSent: true,
@@ -77,7 +79,18 @@ export default function UserRegister() {
       setTimeout(() => setOtpSuccess(''), 5000);
     } catch (err) {
       console.error('Get OTP error:', err);
-      setOtpError(err.message || 'Failed to send OTP. Please try again.');
+      
+      // Provide detailed error message
+      let errorMsg = err.message || 'Failed to send OTP. Please try again.';
+      
+      // Add helpful hints based on error type
+      if (err.isNetwork) {
+        errorMsg += ' (Network issue - check your internet)';
+      } else if (err.isTimeout) {
+        errorMsg += ' (Server not responding - try again)';
+      }
+      
+      setOtpError(errorMsg);
       setOtpData(prev => ({ ...prev, otpLoading: false }));
     }
   };
@@ -86,14 +99,14 @@ export default function UserRegister() {
     e.preventDefault();
     setError('');
 
-    // Check if OTP is entered
+    // Check if OTP is sent
     if (!otpData.isOtpSent) {
       setError('Please get OTP first');
       return;
     }
 
     if (!otpData.otp.trim()) {
-      setError('Please enter the OTP sent to your email');
+      setError('Please enter the OTP from your email');
       return;
     }
 
@@ -104,7 +117,6 @@ export default function UserRegister() {
 
     setLoading(true);
     try {
-      // Include OTP in registration data
       const registrationData = {
         ...formData,
         otp: otpData.otp,
@@ -117,12 +129,23 @@ export default function UserRegister() {
         localStorage.setItem('user', JSON.stringify(response.user));
       }
       localStorage.setItem('jobjiffy_is_authenticated', 'true');
-      
-      // Redirect to login or home
-      navigate('/login');
+      // Show success and redirect after short delay
+      setSuccess('Account created successfully. Redirecting to login...');
+      setTimeout(() => navigate('/login'), 1400);
     } catch (err) {
       console.error('Registration error:', err);
-      setError(err.response?.data?.message || 'Failed to register. Please try again.');
+      // Map common error flags to friendlier messages
+      let msg = err.message || 'Failed to register. Please try again.';
+      if (err.isConnectionRefused) {
+        msg = 'Cannot connect to server. Make sure the backend is running.';
+      } else if (err.isTimeout) {
+        msg = 'Server not responding. Please try again after some time.';
+      } else if (err.isNetwork) {
+        msg = 'Network error. Check your internet connection and try again.';
+      } else if (err.status === 500) {
+        msg = 'Server error. Please try again later.';
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -204,30 +227,31 @@ export default function UserRegister() {
               </motion.button>
             </div>
 
-            {/* OTP Input Field */}
+            {/* OTP Input Field & Verify Button */}
             {otpData.isOtpSent && (
               <motion.div 
-                className="group"
+                className="space-y-3"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <label className="mb-2 block text-sm font-medium text-slate-200">Enter OTP</label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-cyan-400 transition-colors" />
-                  <input
-                    type="text"
-                    value={otpData.otp}
-                    onChange={(e) => {
-                      setOtpData(prev => ({ ...prev, otp: e.target.value }));
-                      setOtpError('');
-                    }}
-                    placeholder="Enter OTP from email"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950/60 py-3 pl-12 pr-4 text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
-                    maxLength="6"
-                  />
+                <div className="group">
+                  <label className="mb-2 block text-sm font-medium text-slate-200">Enter OTP</label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-cyan-400 transition-colors" />
+                    <input
+                      type="text"
+                      value={otpData.otp}
+                      onChange={(e) => {
+                        setOtpData(prev => ({ ...prev, otp: e.target.value }));
+                        setOtpError('');
+                      }}
+                      placeholder="Enter OTP from email"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950/60 py-3 pl-12 pr-4 text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+                      maxLength="6"
+                    />
+                  </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-2">OTP will be verified when you submit the form</p>
               </motion.div>
             )}
 
@@ -311,14 +335,21 @@ export default function UserRegister() {
             </div>
           )}
 
+          {/* Success Message */}
+          {success && (
+            <div className="rounded-lg border border-green-500/40 bg-green-950/40 p-3 text-sm text-green-300">
+              {success}
+            </div>
+          )}
+
           {/* Submit Button */}
           <motion.button
             type="submit"
-            disabled={loading || !otpData.isOtpSent || !otpData.otp.trim()}
-            whileHover={{ scale: (!loading && otpData.isOtpSent && otpData.otp.trim()) ? 1.02 : 1 }}
+            disabled={loading || !otpData.isOtpSent}
+            whileHover={{ scale: (!loading && otpData.isOtpSent) ? 1.02 : 1 }}
             whileTap={{ scale: 0.98 }}
             className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 px-4 font-semibold text-white transition ${
-              otpData.isOtpSent && otpData.otp.trim()
+              otpData.isOtpSent
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600'
                 : 'bg-gradient-to-r from-slate-600 to-slate-700'
             } disabled:cursor-not-allowed disabled:opacity-50`}
@@ -332,11 +363,6 @@ export default function UserRegister() {
               <>
                 <Mail className="w-5 h-5" />
                 Get OTP First
-              </>
-            ) : !otpData.otp.trim() ? (
-              <>
-                <Lock className="w-5 h-5" />
-                Enter OTP to Continue
               </>
             ) : (
               <>

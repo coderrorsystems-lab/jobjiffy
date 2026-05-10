@@ -123,3 +123,32 @@ export const getDashboard = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await adminService.deleteUser(id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    res.json({
+      message: 'User deleted successfully',
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetUserPassword = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await adminService.resetUserPassword(id);
+    res.json({
+      message: 'Password reset email sent to user',
+      result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

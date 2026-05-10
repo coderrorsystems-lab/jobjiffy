@@ -2,21 +2,20 @@ import "./App.css";
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AuthProvider } from "./features/auth/context/AuthContext";
 import { ProtectedRoute } from "./utils/ProtectedRoute";
-import { isAuthenticated, getUserRole } from "./utils/authUtils";
 import ScrollToTop from "./utils/ScrollToTop";
-import Navbar from "./components/layout/Navbar";
-import Footer from "./components/layout/Footer";
-import BrandIntroOverlay from "./components/shared/BrandIntroOverlay";
-import Home from "./pages/Home";
-import AllServicesPage from "./pages/AllServicesPage";
-import AllProfessionalsPage from "./pages/AllProfessionalsPage";
-import ProfessionalDetail from "./pages/ProfessionalDetail";
+import Navbar from "./features/booking/layout/Navbar";
+import Footer from "./features/booking/layout/Footer";
+import BrandIntroOverlay from "./features/user/shared/BrandIntroOverlay";
+import Home from "./features/user/home/Home";
+import AllServicesPage from "./features/user/AllServicesPage";
+import AllProfessionalsPage from "./features/professional/profile/AllProfessionalsPage";
+import ProfessionalDetail from "./features/professional/ProfessionalDetail";
 import ServiceProfessionals from "./pages/ServiceProfessionals";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Profile from "./pages/Profile";
-import EditProfile from "./pages/Profile/EditProfile";
-import Settings from "./pages/Profile/Settings";
+import About from "./features/user/About";
+import Contact from "./features/user/home/Contact";
+import Profile from "./features/user/profile";
+import EditProfile from "./features/user/profile/EditProfile";
+import Settings from "./features/user/profile/Settings";
 import { BookingDashboard } from "./features/booking";
 import {
   Login,
@@ -24,7 +23,6 @@ import {
   RegisterPage,
   ProfessionalRegisterPage,
   ForgotPasswordPage,
-  OTPVerifyPage,
 } from "./features/auth";
 import {
   ProfessionalLayout,
@@ -36,6 +34,12 @@ import {
   Settings as ProfessionalSettings,
   Profile as ProfessionalProfile,
 } from "./features/professional";
+import AdminDashboard from "./features/admin/AdminDashboard";
+import AdminProfessionals from "./features/admin/AdminProfessionals";
+import AdminProfessionalDetail from "./features/admin/AdminProfessionalDetail";
+import AdminUsers from "./features/admin/AdminUsers";
+import AdminUserDetail from "./features/admin/AdminUserDetail";
+import AdminLayout from "./features/admin/AdminLayout";
 
 export default function App() {
   return (
@@ -51,25 +55,22 @@ export default function App() {
 function AppContent() {
   const location = useLocation();
   const isProfessionalRoute = location.pathname.startsWith('/professional');
+  const isAdminRoute = location.pathname.startsWith('/admin');
   const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/forgot-password') || location.pathname.startsWith('/verify-otp');
-  
-  // Get auth state
-  const userIsAuthenticated = isAuthenticated();
-  const userRole = getUserRole();
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-slate-950">
       <BrandIntroOverlay />
 
-      {/* Navbar - Hide on professional routes and auth pages */}
-      {!isProfessionalRoute && !isAuthPage && (
+      {/* Navbar - Hide on professional, admin routes and auth pages */}
+      {!isProfessionalRoute && !isAdminRoute && !isAuthPage && (
         <div className="sticky top-0 z-50">
           <Navbar />
         </div>
       )}
 
       {/* Main Content */}
-      <main className={isProfessionalRoute ? "flex-1" : "flex-1 pt-16 md:pt-20"}>
+      <main className={isProfessionalRoute || isAdminRoute ? "flex-1" : "flex-1 pt-16 md:pt-20"}>
         <Routes>
           {/* ==================== PUBLIC ROUTES (No Login Required) ==================== */}
           
@@ -88,18 +89,13 @@ function AppContent() {
           <Route path="/register/user" element={<RegisterPage />} />
           <Route path="/register/professional" element={<ProfessionalRegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/verify-otp" element={<OTPVerifyPage />} />
 
           {/* ==================== PROTECTED USER ROUTES ==================== */}
           
           <Route
             path="/user/profile"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['user']}
-              >
+              <ProtectedRoute allowedRoles={['user']}>
                 <Profile />
               </ProtectedRoute>
             }
@@ -108,11 +104,7 @@ function AppContent() {
           <Route
             path="/user/edit-profile"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['user']}
-              >
+              <ProtectedRoute allowedRoles={['user']}>
                 <EditProfile />
               </ProtectedRoute>
             }
@@ -121,11 +113,7 @@ function AppContent() {
           <Route
             path="/user/settings"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['user']}
-              >
+              <ProtectedRoute allowedRoles={['user']}>
                 <Settings />
               </ProtectedRoute>
             }
@@ -134,11 +122,7 @@ function AppContent() {
           <Route
             path="/user/bookings"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['user']}
-              >
+              <ProtectedRoute allowedRoles={['user']}>
                 <BookingDashboard />
               </ProtectedRoute>
             }
@@ -149,11 +133,7 @@ function AppContent() {
           <Route
             path="/professional/dashboard"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['professional']}
-              >
+              <ProtectedRoute allowedRoles={['professional']}>
                 <ProfessionalLayout>
                   <Dashboard />
                 </ProfessionalLayout>
@@ -164,11 +144,7 @@ function AppContent() {
           <Route
             path="/professional/bookings"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['professional']}
-              >
+              <ProtectedRoute allowedRoles={['professional']}>
                 <ProfessionalLayout>
                   <Bookings />
                 </ProfessionalLayout>
@@ -179,11 +155,7 @@ function AppContent() {
           <Route
             path="/professional/profile"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['professional']}
-              >
+              <ProtectedRoute allowedRoles={['professional']}>
                 <ProfessionalLayout>
                   <ProfessionalProfile />
                 </ProfessionalLayout>
@@ -194,11 +166,7 @@ function AppContent() {
           <Route
             path="/professional/availability"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['professional']}
-              >
+              <ProtectedRoute allowedRoles={['professional']}>
                 <ProfessionalLayout>
                   <Availability />
                 </ProfessionalLayout>
@@ -209,11 +177,7 @@ function AppContent() {
           <Route
             path="/professional/earnings"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['professional']}
-              >
+              <ProtectedRoute allowedRoles={['professional']}>
                 <ProfessionalLayout>
                   <Earnings />
                 </ProfessionalLayout>
@@ -224,11 +188,7 @@ function AppContent() {
           <Route
             path="/professional/reviews"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['professional']}
-              >
+              <ProtectedRoute allowedRoles={['professional']}>
                 <ProfessionalLayout>
                   <Reviews />
                 </ProfessionalLayout>
@@ -239,11 +199,7 @@ function AppContent() {
           <Route
             path="/professional/settings"
             element={
-              <ProtectedRoute
-                isAuthenticated={userIsAuthenticated}
-                userRole={userRole}
-                allowedRoles={['professional']}
-              >
+              <ProtectedRoute allowedRoles={['professional']}>
                 <ProfessionalLayout>
                   <ProfessionalSettings />
                 </ProfessionalLayout>
@@ -251,13 +207,68 @@ function AppContent() {
             }
           />
 
-          {/* ==================== CATCH-ALL (404) ==================== */}
+          {/* ==================== ADMIN ROUTES ==================== */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminLayout>
+                  <AdminDashboard />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/professionals"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminLayout>
+                  <AdminProfessionals />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/professionals/:id"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminLayout>
+                  <AdminProfessionalDetail />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminLayout>
+                  <AdminUsers />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/users/:id"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminLayout>
+                  <AdminUserDetail />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
-      {/* Footer - Hide on professional routes and auth pages */}
-      {!isProfessionalRoute && !isAuthPage && <Footer />}
+      {/* Footer - Hide on professional, admin routes and auth pages */}
+      {!isProfessionalRoute && !isAdminRoute && !isAuthPage && <Footer />}
     </div>
   );
 }

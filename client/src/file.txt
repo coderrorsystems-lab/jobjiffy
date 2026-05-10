@@ -1,0 +1,3 @@
+admin me change kare he protected routes ko unprotected kara he  
+auth api me role by default admin kara he 
+admin me server me changes kare he like pass or username ke validation me 

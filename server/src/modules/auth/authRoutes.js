@@ -5,7 +5,8 @@ import {
   userRegisterSchema, 
   professionalRegisterSchema, 
   loginSchema, 
-  refreshTokenSchema
+  refreshTokenSchema,
+  sendOtpSchema
 } from '../../utils/validators.js';
 
 const router = express.Router();
@@ -22,5 +23,9 @@ router.post('/login', validate(loginSchema), authController.login);
 
 router.post('/user/register', validate(userRegisterSchema), authController.registerUser);
 router.post('/professional/register', validate(professionalRegisterSchema), authController.registerProfessional);
+
+// ==================== EMAIL OTP VERIFICATION ====================
+
+router.post('/send-otp', validate(sendOtpSchema), authController.sendOtp);
 
 export default router;

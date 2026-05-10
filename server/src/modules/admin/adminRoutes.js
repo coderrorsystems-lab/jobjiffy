@@ -19,6 +19,8 @@ router.put('/professionals/:id/reject', adminController.rejectProfessional);
 router.get('/users', adminController.getAllUsers);
 router.get('/users/:id', adminController.getUserById);
 router.put('/users/:id/block', validate(blockUserSchema), adminController.blockUser);
+router.delete('/users/:id', adminController.deleteUser);
+router.post('/users/:id/reset-password', adminController.resetUserPassword);
 
 router.get('/dashboard', adminController.getDashboard);
 router.post('/logout', logoutAdmin);

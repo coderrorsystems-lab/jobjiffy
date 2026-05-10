@@ -70,6 +70,8 @@ export default function Login() {
       setTimeout(() => {
         if (role === 'professional') {
           navigate('/professional/dashboard', { replace: true });
+        } else if (role === 'admin') {
+          navigate('/admin', { replace: true });
         } else {
           navigate('/home', { replace: true });
         }
@@ -175,11 +177,11 @@ export default function Login() {
           {/* Login As Selection */}
           <div className="pt-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Login As</label>
-            <div className="flex gap-4">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setRole('user')}
-                className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
+                className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all ${
                   role === 'user'
                     ? 'bg-blue-600 text-white shadow-lg'
                     : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
@@ -190,13 +192,24 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setRole('professional')}
-                className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
+                className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all ${
                   role === 'professional'
                     ? 'bg-indigo-600 text-white shadow-lg'
                     : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                 }`}
               >
                 Professional
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('admin')}
+                className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all ${
+                  role === 'admin'
+                    ? 'bg-red-600 text-white shadow-lg'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                Admin
               </button>
             </div>
           </div>

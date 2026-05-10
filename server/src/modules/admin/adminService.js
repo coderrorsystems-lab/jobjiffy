@@ -62,3 +62,22 @@ export const getProfessionalById = async (professionalId) => {
 export const getUserById = async (userId) => {
   return User.findById(userId).select('-password -refreshToken');
 };
+
+export const deleteUser = async (userId) => {
+  return User.findByIdAndDelete(userId);
+};
+
+export const resetUserPassword = async (userId) => {
+  // TODO: Implement password reset email flow
+  // For now, generate a temporary password and send via email
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+  // In a real implementation, you'd generate a reset token and send email
+  return {
+    userId: user._id,
+    email: user.email,
+    message: 'Password reset email would be sent to user'
+  };
+};

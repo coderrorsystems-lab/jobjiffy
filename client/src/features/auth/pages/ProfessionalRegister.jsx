@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWindowScroll } from '@/hooks';
-import { registerProfessional } from '../../../services/serviceAPI';
+import { registerProfessional, sendOTP } from '../services/authAPI';
+import { verifyOTP } from '../services/authAPI';
 import { serviceTypes as SERVICE_CATEGORIES } from '../../../data/serivceTypes'; 
 const STEPS = [
   { id: 1, title: 'Basic Info', description: 'Your contact details' },
@@ -31,6 +32,10 @@ export default function ProfessionalRegister() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // OTP states (same flow as user registration)
+  const [otpData, setOtpData] = useState({ otp: '', isOtpSent: false, otpLoading: false });
+  const [otpError, setOtpError] = useState('');
+  const [otpSuccess, setOtpSuccess] = useState('');
 
   const [formData, setFormData] = useState({
     // Step 1: Basic Info
@@ -217,29 +222,49 @@ export default function ProfessionalRegister() {
   };
   const validateStep = () => {
     setError('');
-    
+
+    const trim = (v) => (typeof v === 'string' ? v.trim() : v);
+
     if (currentStep === 1) {
-      if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-        setError('Please fill all required fields');
+      const name = trim(formData.name);
+      const email = trim(formData.email);
+      const phone = trim(formData.phone);
+      const password = formData.password;
+      const confirm = formData.confirmPassword;
+
+      if (!name) {
+        setError('Full name is required');
         return false;
       }
-      if (formData.name.length < 2) {
+      if (name.length < 2) {
         setError('Name must be at least 2 characters');
         return false;
       }
-      if (!isValidEmail(formData.email)) {
+      if (!email) {
+        setError('Email is required');
+        return false;
+      }
+      if (!isValidEmail(email)) {
         setError('Please enter a valid email address');
         return false;
       }
-      if (!isValidPhone(formData.phone)) {
+      if (!phone) {
+        setError('Phone is required');
+        return false;
+      }
+      if (!isValidPhone(phone)) {
         setError('Phone must be in E.164 format (e.g., +919999999999)');
         return false;
       }
-      if (formData.password !== formData.confirmPassword) {
+      if (!password) {
+        setError('Password is required');
+        return false;
+      }
+      if (password !== confirm) {
         setError('Passwords do not match');
         return false;
       }
-      if (formData.password.length < 8) {
+      if (password.length < 8) {
         setError('Password must be at least 8 characters');
         return false;
       }
@@ -247,24 +272,37 @@ export default function ProfessionalRegister() {
 
     if (currentStep === 2) {
       const { address } = formData;
-      if (!address.street || !address.city || !address.state || !address.zipCode) {
-        setError('Please fill all address fields');
+      if (!trim(address.street) || !trim(address.city) || !trim(address.state) || !trim(address.zipCode)) {
+        setError('Please fill all address fields (street, city, state, zip)');
         return false;
       }
     }
 
     if (currentStep === 3) {
       const { professionalDetails } = formData;
-      if (!professionalDetails.category || !professionalDetails.collegeName || !professionalDetails.department || !professionalDetails.year || !professionalDetails.bio) {
-        setError('Please fill all required fields');
+      if (!trim(professionalDetails.collegeName)) {
+        setError('College name is required');
+        return false;
+      }
+      if (!trim(professionalDetails.department)) {
+        setError('Department is required');
+        return false;
+      }
+      if (!trim(professionalDetails.year)) {
+        setError('Please select your year of graduation');
+        return false;
+      }
+      if (!trim(professionalDetails.bio)) {
+        setError('Please write a short bio');
         return false;
       }
       if (services.length === 0) {
         setError('Please add at least one service');
         return false;
       }
-      if (Number(professionalDetails.year) < 1980 || Number(professionalDetails.year) > new Date().getFullYear() + 5) {
-        setError('Please enter a valid year');
+      const yearNum = Number(professionalDetails.year);
+      if (Number.isNaN(yearNum) || yearNum < 1980 || yearNum > new Date().getFullYear() + 5) {
+        setError('Please enter a valid year of graduation');
         return false;
       }
       if (professionalDetails.bio.length > 500) {
@@ -279,33 +317,70 @@ export default function ProfessionalRegister() {
         setError('Please upload your College ID');
         return false;
       }
-      if (!collegeGmail) {
+      if (!trim(collegeGmail)) {
         setError('Please enter your College Gmail');
         return false;
       }
-      if (!isValidEmail(collegeGmail)) {
-        setError('Please enter a valid email address');
+      if (!isValidEmail(trim(collegeGmail))) {
+        setError('Please enter a valid college email address');
         return false;
       }
     }
 
     if (currentStep === 5) {
       const { bankDetails } = formData.professionalDetails;
-      if (!bankDetails.accountNumber || !bankDetails.ifsc || !bankDetails.accountHolderName) {
-        setError('Please fill all banking details');
-        return false;
-      }
-      if (!isValidAccountNumber(bankDetails.accountNumber)) {
-        setError('Bank account number must be 9-18 digits');
-        return false;
-      }
-      if (!isValidIFSC(bankDetails.ifsc)) {
-        setError('IFSC code format is invalid (e.g., SBIN0000001)');
-        return false;
+      const acc = trim(bankDetails.accountNumber || '');
+      const ifsc = trim(bankDetails.ifsc || '');
+      const holder = trim(bankDetails.accountHolderName || '');
+
+      // Make bank details optional. If any field is provided, require all and validate.
+      if (acc || ifsc || holder) {
+        if (!acc || !ifsc || !holder) {
+          setError('Please complete all banking details or leave them all empty');
+          return false;
+        }
+        if (!isValidAccountNumber(acc)) {
+          setError('Bank account number must be 9-18 digits');
+          return false;
+        }
+        if (!isValidIFSC(ifsc)) {
+          setError('IFSC code format is invalid (e.g., SBIN0000001)');
+          return false;
+        }
       }
     }
 
     return true;
+  };
+
+  const handleGetOTP = async () => {
+    setOtpError('');
+    setOtpSuccess('');
+
+    const email = (formData.email || '').trim();
+    if (!email) {
+      setOtpError('Please enter your email address');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setOtpError('Please enter a valid email address');
+      return;
+    }
+
+    setOtpData(prev => ({ ...prev, otpLoading: true }));
+    try {
+      await sendOTP(email);
+      setOtpSuccess('OTP sent to your email! Check your inbox and spam folder.');
+      setOtpData(prev => ({ ...prev, isOtpSent: true, otpLoading: false, otp: '' }));
+      setTimeout(() => setOtpSuccess(''), 5000);
+    } catch (err) {
+      console.error('Get OTP error:', err);
+      let errorMsg = err.message || 'Failed to send OTP. Please try again.';
+      if (err.isNetwork) errorMsg += ' (Network issue)';
+      if (err.isTimeout) errorMsg += ' (Server not responding)';
+      setOtpError(errorMsg);
+      setOtpData(prev => ({ ...prev, otpLoading: false }));
+    }
   };
 
   const handleNext = () => {
@@ -326,6 +401,19 @@ export default function ProfessionalRegister() {
 
     setLoading(true);
     try {
+        // Normalize services to server-allowed values so server enums match
+        const serverAllowed = ['cleaning','beauty','repair','appliance','personalcare','other'];
+        const normalizedServices = services.map(({ id, ...service }) => {
+          const raw = (service.category || '').toString().trim().toLowerCase();
+          const direct = serverAllowed.find(a => a === raw);
+          if (direct) return { category: direct, serviceName: service.name, desc: service.description, price: Number(service.price) };
+          if (raw.includes('clean')) return { category: 'cleaning', serviceName: service.name, desc: service.description, price: Number(service.price) };
+          if (raw.includes('beaut') || raw.includes('makeup') || raw.includes('salon')) return { category: 'beauty', serviceName: service.name, desc: service.description, price: Number(service.price) };
+          if (raw.includes('repair') || raw.includes('fix') || raw.includes('appliance')) return { category: 'repair', serviceName: service.name, desc: service.description, price: Number(service.price) };
+          if (raw.includes('personal') || raw.includes('care') || raw.includes('tutor')) return { category: 'personalcare', serviceName: service.name, desc: service.description, price: Number(service.price) };
+          return { category: 'other', serviceName: service.name, desc: service.description, price: Number(service.price) };
+        });
+
       // Backend expects flat JSON format
       const submitData = {
         // Basic Info
@@ -346,17 +434,12 @@ export default function ProfessionalRegister() {
         yearOfGraduation: Number(formData.professionalDetails.year),
         collegeEmail: formData.professionalDetails.collegeGmail,
         
-        // Bio & Category
+        // Bio
         bio: formData.professionalDetails.bio,
-        category: formData.professionalDetails.category,
-        
-        // Services - correct field names
-        services: services.map(({ id, ...service }) => ({
-          category: service.category,
-          serviceName: service.name,
-          desc: service.description,
-          price: service.price
-        })),
+
+        // Services and derived top-level category
+        services: normalizedServices,
+        category: (normalizedServices[0] && normalizedServices[0].category) || 'other',
         
         // Bank Details - flat fields
         accountNumber: formData.professionalDetails.bankDetails.accountNumber,
@@ -364,11 +447,26 @@ export default function ProfessionalRegister() {
         ifscCode: formData.professionalDetails.bankDetails.ifsc,
         upiId: formData.professionalDetails.bankDetails.upiId,
         
-        // KYC Documents
+        // KYC Documents - send filename only (avoid large base64 payload)
         kycDocuments: {
-          collegeId: previews.collegeId || ''
+          collegeId: formData.professionalDetails.kycDocuments?.collegeId?.name || ''
         }
       };
+
+      // Ensure OTP is present and verified by server as part of registration
+      if (!otpData.isOtpSent) {
+        setError('Please get OTP first');
+        setLoading(false);
+        return;
+      }
+      if (!otpData.otp || !otpData.otp.trim()) {
+        setError('Please enter the OTP from your email');
+        setLoading(false);
+        return;
+      }
+
+      // Include OTP in submit payload (keeps flow consistent with user registration)
+      submitData.otp = otpData.otp;
 
       const response = await registerProfessional(submitData);
       
@@ -427,6 +525,70 @@ export default function ProfessionalRegister() {
             required
           />
         </div>
+      </motion.div>
+
+      {/* OTP Section for Professional registration (same UX as user flow) */}
+      <motion.div variants={itemVariants} className="space-y-3 border-t border-slate-700/50 pt-4">
+        <div className="flex gap-2">
+          <motion.button
+            type="button"
+            onClick={handleGetOTP}
+            disabled={otpData.otpLoading}
+            whileHover={{ scale: !otpData.otpLoading ? 1.02 : 1 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center justify-center gap-2 flex-1 rounded-xl border border-cyan-400/50 bg-cyan-500/10 py-2.5 px-3 font-medium text-cyan-400 transition disabled:cursor-not-allowed disabled:opacity-50 disabled:border-slate-600 disabled:text-slate-500 disabled:bg-slate-800/30"
+          >
+            {otpData.otpLoading ? (
+              <>
+                <Loader className="w-4 h-4 animate-spin" />
+                Sending OTP...
+              </>
+            ) : otpData.isOtpSent ? (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                OTP Sent - Resend?
+              </>
+            ) : (
+              <>
+                <Mail className="w-4 h-4" />
+                Get OTP
+              </>
+            )}
+          </motion.button>
+        </div>
+
+        {otpData.isOtpSent && (
+          <motion.div className="space-y-3" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <div className="group">
+              <label className="mb-2 block text-sm font-medium text-slate-200">Enter OTP</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  value={otpData.otp}
+                  onChange={(e) => { setOtpData(prev => ({ ...prev, otp: e.target.value })); setOtpError(''); }}
+                  placeholder="Enter OTP from email"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950/60 py-3 pl-12 pr-4 text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+                  maxLength="6"
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {otpSuccess && (
+          <div className="rounded-lg border border-green-500/40 bg-green-950/40 p-3 text-sm text-green-300 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 flex-shrink-0" />
+            {otpSuccess}
+          </div>
+        )}
+
+        {otpError && (
+          <div className="rounded-lg border border-red-500/40 bg-red-950/40 p-3 text-sm text-red-300 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {otpError}
+          </div>
+        )}
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">

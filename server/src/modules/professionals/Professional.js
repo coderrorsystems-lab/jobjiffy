@@ -89,23 +89,24 @@ const professionalSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['cleaning', 'beauty', 'repair', 'appliance', 'personalcare', 'other'],
+   enum: [
+    'logo_design',
+    'poster_banner_design',
+    'assignment_writing',
+    'photo_editing',
+    'pdf_editing',
+    'notes_making',
+    'lab_file',
+    'thumbnail_design',
+    'other'
+  ],
     required: true
   },
   experience: {
     type: Number,
     default: 0
   },
-  kycDocuments: {
-    aadhar: {
-      type: String,
-      required: true
-    },
-    pan: {
-      type: String,
-      required: true
-    }
-  },
+ 
   accountNumber: {
     type: String
   },

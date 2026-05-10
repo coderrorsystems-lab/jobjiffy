@@ -10,4 +10,3 @@ export { default as RegisterOptionsPage } from './pages/RegisterOptions';
 export { default as RegisterPage } from './pages/Register';
 export { default as ProfessionalRegisterPage } from './pages/ProfessionalRegister';
 export { default as ForgotPasswordPage } from './pages/ForgotPassword';
-export { default as OTPVerifyPage } from './pages/OTPVerify';
