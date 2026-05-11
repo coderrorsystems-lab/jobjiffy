@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom';
-import { getUserRole, isAuthenticated } from './authUtils';
+import { getUserRole, isAuthenticated, isTokenExpired } from './authUtils';
 
 /**
  * ProtectedRoute Component
@@ -20,6 +20,13 @@ export function ProtectedRoute({
   // Check auth state dynamically (not from props) so it updates after login
   const userIsAuthenticated = isAuthenticated();
   const userRole = getUserRole();
+  const tokenExpired = isTokenExpired();
+
+  // If token is expired, clear auth and redirect to login
+  if (tokenExpired) {
+    console.warn('Token expired, redirecting to login');
+    return <Navigate to={redirectTo} replace />;
+  }
 
   // If not authenticated, redirect to login
   if (!userIsAuthenticated) {

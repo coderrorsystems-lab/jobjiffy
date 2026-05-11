@@ -1,14 +1,17 @@
 import { z } from 'zod';
 
-export const phoneRegex = /^\+[1-9]\d{1,14}$/;
+// More flexible phone regex - accepts +91 followed by 10 digits with optional spaces
+export const phoneRegex = /^\+91[\s-]?\d{10}$|^\+[1-9]\d{1,14}$/;
 
 export const userRegisterSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  phone: z.string().regex(phoneRegex, 'Invalid phone number format (use +91...)'),
+  phone: z.string()
+    .transform(p => p.replace(/\s+/g, '')) // Remove spaces
+    .pipe(z.string().regex(/^\+91\d{10}$/, 'Invalid phone number format (use +91 followed by 10 digits)')),
   otp: z.string().length(6, 'OTP must be 6 digits'),
-  img: z.string().url().optional(),
+  img: z.string().url().optional().or(z.literal('')),
   bio: z.string().max(500).optional(),
   location: z.object({
     street: z.string().optional(),
@@ -22,7 +25,9 @@ export const professionalRegisterSchema = z.object({
   fullname: z.string().min(2, 'Full name must be at least 2 characters').max(100),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  phone: z.string().regex(phoneRegex, 'Invalid phone number format (use +91...)'),
+  phone: z.string()
+    .transform(p => p.replace(/\s+/g, '')) // Remove spaces
+    .pipe(z.string().regex(/^\+91\d{10}$/, 'Invalid phone number format (use +91 followed by 10 digits)')),
   otp: z.string().length(6, 'OTP must be 6 digits'),
   streetAddress: z.string().optional(),
   city: z.string().min(1, 'City is required'),
@@ -32,10 +37,10 @@ export const professionalRegisterSchema = z.object({
   department: z.string().optional(),
   yearOfGraduation: z.number().int().min(1900).max(2100).optional(),
   collegeEmail: z.string().email().optional(),
-  collegeIdPhoto: z.string().url().optional(),
+  collegeIdPhoto: z.string().url().optional().or(z.literal('')),
   bio: z.string().max(500).optional(),
   services: z.array(z.object({
-    // category: z.enum(['cleaning', 'beauty', 'repair', 'appliance', 'personalcare', 'other']),
+    category: z.string().optional(),
     serviceName: z.string().min(1, 'Service name is required'),
     desc: z.string().optional(),
     price: z.number().positive('Price must be positive')
@@ -68,12 +73,14 @@ export const sendOtpSchema = z.object({
 
 export const validate = (schema) => (req, res, next) => {
   try {
-    schema.parse(req.body);
-    console.log('Validating request body:', req.body);
-     
+    const validated = schema.parse(req.body);
+    console.log('[Validation] ✅ Request validated:', { email: validated.email, phone: validated.phone });
+    // Replace body with validated and transformed data
+    req.body = validated;
     next();
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('[Validation] ❌ Validation failed:', error.errors);
       return res.status(400).json({
         message: 'Validation failed',
         errors: error.errors.map(err => ({

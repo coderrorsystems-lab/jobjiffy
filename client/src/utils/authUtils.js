@@ -4,6 +4,23 @@
  */
 
 /**
+ * Decode JWT token and get payload
+ */
+const decodeJWT = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+};
+
+/**
  * Get the authentication token from localStorage
  */
 export const getAuthToken = () => {
@@ -22,7 +39,9 @@ export const getUserRole = () => {
  */
 export const isAuthenticated = () => {
   const token = getAuthToken();
-  return !!token; // Returns true if token exists, false otherwise
+  if (!token) return false;
+  // Check if token is expired
+  return !isTokenExpired();
 };
 
 /**
@@ -62,13 +81,28 @@ export const clearAuthData = () => {
 };
 
 /**
- * Check if token is expired (basic check)
- * Note: A more robust implementation would decode the JWT
+ * Check if token is expired
+ * Decodes JWT and checks the exp claim
  */
 export const isTokenExpired = () => {
   const token = getAuthToken();
   if (!token) return true;
-  // For now, we'll assume token is valid if it exists
-  // In production, you should decode and check the exp claim
-  return false;
+  
+  try {
+    const decoded = decodeJWT(token);
+    if (!decoded || !decoded.exp) return true;
+    
+    // exp is in seconds, Date.now() is in milliseconds
+    const currentTime = Math.floor(Date.now() / 1000);
+    const isExpired = currentTime > decoded.exp;
+    
+    if (isExpired) {
+      console.warn('[Auth] Token has expired');
+    }
+    
+    return isExpired;
+  } catch (error) {
+    console.error('[Auth] Error checking token expiration:', error);
+    return true; // Assume expired if we can't decode
+  }
 };

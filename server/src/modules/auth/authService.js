@@ -123,10 +123,15 @@ export const login = async (email, password, role) => {
 // ==================== REGISTRATION ====================
 
 export const registerUser = async (data, otp) => {
+  console.log('[Auth Service] registerUser started for email:', data.email);
+  
   const otpResult = verifyOTP(data.email, otp);
   if (!otpResult.valid) {
+    console.error('[Auth Service] OTP verification failed:', otpResult.error);
     throw new Error(otpResult.error);
   }
+
+  console.log('[Auth Service] OTP verified successfully');
 
   const existingUser = await User.findOne({ 
     $or: [{ email: data.email }, { phone: data.phone }] 
@@ -141,6 +146,8 @@ export const registerUser = async (data, otp) => {
     }
   }
 
+  console.log('[Auth Service] Creating new user with email:', data.email);
+  
   const user = new User({
     name: data.name,
     email: data.email,
@@ -153,15 +160,21 @@ export const registerUser = async (data, otp) => {
   });
 
   await user.save();
+  console.log('[Auth Service] ✅ User created successfully:', user._id);
   return user;
 };
 
 export const registerProfessional = async (data, otp) => {
- const otpResult = verifyOTP(data.email, otp);
-   if(!otpResult.valid) {
+  console.log('[Auth Service] registerProfessional started for email:', data.email);
+  
+  const otpResult = verifyOTP(data.email, otp);
+  if(!otpResult.valid) {
+    console.error('[Auth Service] OTP verification failed:', otpResult.error);
     throw new Error(otpResult.error);
   }
-  console.log('OTP verification skipped for professional registration');
+  
+  console.log('[Auth Service] OTP verified successfully for professional');
+  
   const existingProfessional = await Professional.findOne({ 
     $or: [{ email: data.email }, { phone: data.phone }] 
   });
@@ -174,6 +187,8 @@ export const registerProfessional = async (data, otp) => {
       throw new Error('Phone number already registered');
     }
   }
+
+  console.log('[Auth Service] Creating new professional with email:', data.email);
 
   const professional = new Professional({
     fullname: data.fullname,
@@ -204,6 +219,7 @@ export const registerProfessional = async (data, otp) => {
   });
 
   await professional.save();
+  console.log('[Auth Service] ✅ Professional created successfully:', professional._id);
   return professional;
 };
 

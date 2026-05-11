@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken } from '../../utils/authUtils';
+import { getAuthToken, clearAuthData } from '../../utils/authUtils';
 
 const API = axios.create({ 
   baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/admin',
@@ -16,7 +16,7 @@ API.interceptors.request.use(config => {
   return config;
 }, error => Promise.reject(error));
 
-// Log responses and errors
+// Log responses and errors + Handle token expiration
 API.interceptors.response.use(
   response => {
     console.log(`[Admin API] Response ${response.status}`, response.data);
@@ -28,6 +28,15 @@ API.interceptors.response.use(
       message: error.response?.data?.message,
       error: error.message
     });
+
+    // Handle token expiration (401 Unauthorized)
+    if (error.response?.status === 401) {
+      console.warn('[Admin API] Token expired or invalid. Clearing auth and redirecting to login...');
+      clearAuthData();
+      // Redirect to login
+      window.location.href = '/login';
+    }
+
     return Promise.reject(error);
   }
 );

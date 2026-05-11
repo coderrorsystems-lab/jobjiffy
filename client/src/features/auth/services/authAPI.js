@@ -2,6 +2,7 @@
 // API calls for authentication endpoints
 // Status: Ready for implementation
 import axios from 'axios';
+import { clearAuthData } from '../../../utils/authUtils';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
@@ -23,7 +24,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for logging
+// Add response interceptor for logging and token expiration handling
 apiClient.interceptors.response.use(
   (response) => {
     console.log(`[API] Response ${response.status} from ${response.config.url}`, response.data);
@@ -35,6 +36,15 @@ apiClient.interceptors.response.use(
       data: error.response?.data,
       message: error.message,
     });
+
+    // Handle token expiration (401 Unauthorized)
+    if (error.response?.status === 401) {
+      console.warn('[API] Token expired or invalid. Clearing auth and redirecting to login...');
+      clearAuthData();
+      // Redirect to login
+      window.location.href = '/login';
+    }
+
     return Promise.reject(error);
   }
 );
