@@ -6,6 +6,7 @@ import authRoutes from './modules/auth/authRoutes.js';
 import userRoutes from './modules/users/userRoutes.js';
 import professionalRoutes from './modules/professionals/professionalRoutes.js';
 import adminRoutes from './modules/admin/adminRoutes.js';
+import categoryRoutes from './modules/categories/categoryRoutes.js';
 
 const app = express();
 
@@ -44,6 +45,9 @@ app.use('/api/professionals', professionalRoutes);
 
 // Admin routes
 app.use('/api/admin', adminRoutes);
+
+// Category routes
+app.use('/api/categories', categoryRoutes);
 
 app.use((err, req, res, next) => {
   console.error('[Error Handler]', {

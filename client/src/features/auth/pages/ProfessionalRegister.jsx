@@ -71,7 +71,8 @@ export default function ProfessionalRegister() {
     }
   });
 
-  const [newService, setNewService] = useState({ name: '', description: '', price: '', category: '' });
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [newService, setNewService] = useState({ name: '', description: '', price: '', categoryId: null });
   const [services, setServices] = useState([]);
   const [previews, setPreviews] = useState({});
 
@@ -151,7 +152,7 @@ export default function ProfessionalRegister() {
   const handleAddService = (e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
-    if (!newService.name || !newService.description || !newService.price || !newService.category) {
+    if (!newService.name || !newService.description || !newService.price || !newService.categoryId) {
       setError('Please fill all service details including category');
       return;
     }
@@ -160,8 +161,16 @@ export default function ProfessionalRegister() {
       return;
     }
     setServices(prev => [...prev, { ...newService, price: Number(newService.price), id: Date.now() }]);
-    setNewService({ name: '', description: '', price: '', category: '' });
+    if (!selectedCategories.includes(newService.categoryId)) {
+      setSelectedCategories(prev => [...prev, newService.categoryId]);
+    }
+    setNewService({ name: '', description: '', price: '', categoryId: null });
     setError('');
+  };
+
+  const handleRemoveCategory = (categoryId) => {
+    setSelectedCategories(prev => prev.filter(id => id !== categoryId));
+    setServices(prev => prev.filter(s => s.categoryId !== categoryId));
   };
 
   const handleRemoveService = (e, index) => {
@@ -300,6 +309,10 @@ export default function ProfessionalRegister() {
         setError('Please add at least one service');
         return false;
       }
+      if (selectedCategories.length === 0) {
+        setError('Please select at least one category');
+        return false;
+      }
       const yearNum = Number(professionalDetails.year);
       if (Number.isNaN(yearNum) || yearNum < 1980 || yearNum > new Date().getFullYear() + 5) {
         setError('Please enter a valid year of graduation');
@@ -401,20 +414,15 @@ export default function ProfessionalRegister() {
 
     setLoading(true);
     try {
-        // Normalize services to server-allowed values so server enums match
-        const serverAllowed = ['cleaning','beauty','repair','appliance','personalcare','other'];
-        const normalizedServices = services.map(({ id, ...service }) => {
-          const raw = (service.category || '').toString().trim().toLowerCase();
-          const direct = serverAllowed.find(a => a === raw);
-          if (direct) return { category: direct, serviceName: service.name, desc: service.description, price: Number(service.price) };
-          if (raw.includes('clean')) return { category: 'cleaning', serviceName: service.name, desc: service.description, price: Number(service.price) };
-          if (raw.includes('beaut') || raw.includes('makeup') || raw.includes('salon')) return { category: 'beauty', serviceName: service.name, desc: service.description, price: Number(service.price) };
-          if (raw.includes('repair') || raw.includes('fix') || raw.includes('appliance')) return { category: 'repair', serviceName: service.name, desc: service.description, price: Number(service.price) };
-          if (raw.includes('personal') || raw.includes('care') || raw.includes('tutor')) return { category: 'personalcare', serviceName: service.name, desc: service.description, price: Number(service.price) };
-          return { category: 'other', serviceName: service.name, desc: service.description, price: Number(service.price) };
-        });
+      // Normalize services to use categoryId (numeric 101-109) instead of category string
+      const normalizedServices = services.map(({ id, ...service }) => ({
+        categoryId: service.categoryId,
+        serviceName: service.name,
+        desc: service.description,
+        price: Number(service.price)
+      }));
 
-      // Backend expects flat JSON format
+      // Backend expects categories array (numeric IDs) and services with categoryId
       const submitData = {
         // Basic Info
         fullname: formData.name,
@@ -437,9 +445,9 @@ export default function ProfessionalRegister() {
         // Bio
         bio: formData.professionalDetails.bio,
 
-        // Services and derived top-level category
+        // Services and Categories (new format with categoryId and categories array)
         services: normalizedServices,
-        category: (normalizedServices[0] && normalizedServices[0].category) || 'other',
+        categories: selectedCategories,
         
         // Bank Details - flat fields
         accountNumber: formData.professionalDetails.bankDetails.accountNumber,
@@ -832,18 +840,43 @@ export default function ProfessionalRegister() {
       </motion.div>
 
       <motion.div variants={itemVariants} className="group">
+        <label className="block text-sm font-medium text-slate-300 mb-2">Selected Categories *</label>
+        {selectedCategories.length > 0 ? (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {selectedCategories.map(catId => {
+              const cat = SERVICE_CATEGORIES.find(c => c.id === catId);
+              return (
+                <span key={catId} className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-900/50 border border-cyan-700 rounded-full text-cyan-300 text-sm">
+                  {cat?.name || 'Category ' + catId}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCategory(catId)}
+                    className="hover:text-red-400 ml-1"
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 mb-3">Add services below to automatically select categories</p>
+        )}
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="group">
         <label className="block text-sm font-medium text-slate-300 mb-2">Add Services *</label>
         <div className="space-y-3 bg-slate-800 border border-slate-700 rounded-xl p-4">
           <div className="space-y-2">
             <div className="relative">
               <select
-                value={newService.category}
-                onChange={(e) => setNewService(prev => ({ ...prev, category: e.target.value }))}
+                value={newService.categoryId || ''}
+                onChange={(e) => setNewService(prev => ({ ...prev, categoryId: Number(e.target.value) }))}
                 className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer pr-8 relative z-20"
               >
                 <option value="" className="bg-slate-900 text-white">Select service category</option>
                 {SERVICE_CATEGORIES.map(cat => (
-                  <option key={cat.id} value={cat.name} className="bg-slate-900 text-white">
+                  <option key={cat.id} value={cat.id} className="bg-slate-900 text-white">
                     {cat.name}
                   </option>
                 ))}
@@ -908,7 +941,7 @@ export default function ProfessionalRegister() {
                   className="bg-slate-700 p-3 rounded-lg flex justify-between items-start gap-3"
                 >
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-cyan-400 mb-1">{service.category}</p>
+                    <p className="text-xs font-semibold text-cyan-400 mb-1">{SERVICE_CATEGORIES.find(c => c.id === service.categoryId)?.name || 'Category ' + service.categoryId}</p>
                     <p className="font-medium text-white">{service.name}</p>
                     <p className="text-sm text-slate-400 line-clamp-1">{service.description}</p>
                     <p className="text-cyan-400 font-semibold text-sm">₹ {service.price}</p>

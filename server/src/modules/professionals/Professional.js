@@ -2,9 +2,8 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const serviceSchema = new mongoose.Schema({
-  category: {
-    type: String,
-    enum: ['cleaning', 'beauty', 'repair', 'appliance', 'personalcare', 'other'],
+  categoryId: {
+    type: Number,
     required: true
   },
   serviceName: {
@@ -82,25 +81,15 @@ const professionalSchema = new mongoose.Schema({
     type: String,
     maxlength: 500
   },
-  services: {
+services: {
     type: [serviceSchema],
     required: true,
     validate: [array => array.length > 0, 'At least one service required']
   },
-  category: {
-    type: String,
-   enum: [
-    'logo_design',
-    'poster_banner_design',
-    'assignment_writing',
-    'photo_editing',
-    'pdf_editing',
-    'notes_making',
-    'lab_file',
-    'thumbnail_design',
-    'other'
-  ],
-    required: true
+  categories: {
+    type: [Number],
+    required: true,
+    validate: [array => array.length > 0, 'At least one category required']
   },
   experience: {
     type: Number,
@@ -168,7 +157,7 @@ const professionalSchema = new mongoose.Schema({
 
 professionalSchema.index({ city: 1 });
 professionalSchema.index({ status: 1 });
-professionalSchema.index({ category: 1 });
+professionalSchema.index({ categories: 1 });
 
 professionalSchema.virtual('memberSince').get(function() {
   return this.createdAt;

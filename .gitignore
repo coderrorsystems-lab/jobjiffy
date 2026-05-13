@@ -74,3 +74,5 @@ temp/
 # Local environment files
 .env.local
 .env.*.local
+
+AGENTS.md

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import User from '../users/User.js';
 import Professional from '../professionals/Professional.js';
 import Admin from '../admin/Admin.js';
+import Category from '../categories/Category.js';
 import { config } from '../../config/index.js';
 import { verifyOTP } from '../../utils/otp.js';
 
@@ -206,7 +207,7 @@ export const registerProfessional = async (data, otp) => {
     collegeIdPhoto: data.collegeIdPhoto,
     bio: data.bio,
     services: data.services,
-    category: data.category,
+    categories: data.categories,
     experience: data.experience,
     kycDocuments: data.kycDocuments,
     accountNumber: data.accountNumber,
@@ -219,6 +220,31 @@ export const registerProfessional = async (data, otp) => {
   });
 
   await professional.save();
+
+  console.log('[Auth Service] Professional created with ID:', professional._id);
+  console.log('[Auth Service] Categories assigned:', data.categories);
+  console.log('[Auth Service] Services to add:', data.services);
+
+  if (data.categories && data.categories.length > 0) {
+    for (const catId of data.categories) {
+      const category = await Category.findOne({ id: catId });
+      if (category) {
+        console.log('[Auth Service] Found category:', catId, '-', category.name);
+      } else {
+        console.warn('[Auth Service] Category not found:', catId);
+      }
+    }
+  }
+
+  if (data.services && data.services.length > 0) {
+    for (const service of data.services) {
+      const result = await Category.updateOne(
+        { id: service.categoryId },
+        { $push: { services: { serviceName: service.serviceName, description: service.description || service.desc, price: service.price, professionalId: professional._id } } }
+      );
+      console.log('[Auth Service] Added service to category', service.categoryId, ':', result.modifiedCount > 0 ? 'success' : 'failed');
+    }
+  }
   console.log('[Auth Service] ✅ Professional created successfully:', professional._id);
   return professional;
 };

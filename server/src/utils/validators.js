@@ -40,11 +40,12 @@ export const professionalRegisterSchema = z.object({
   collegeIdPhoto: z.string().url().optional().or(z.literal('')),
   bio: z.string().max(500).optional(),
   services: z.array(z.object({
-    category: z.string().optional(),
+    categoryId: z.number().min(101).max(109),
     serviceName: z.string().min(1, 'Service name is required'),
     desc: z.string().optional(),
     price: z.number().positive('Price must be positive')
   })).min(1, 'At least one service required'),
+  categories: z.array(z.number().min(101).max(109)).min(1, 'At least one category required'),
  
   
   accountNumber: z.string().optional(),
