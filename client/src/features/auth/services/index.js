@@ -1,3 +1,3 @@
-// Auth Services Folder
-// This folder contains API calls and token management
-// Files: authAPI.js, tokenService.js
+// Auth Services Index
+export * from './authAPI';
+export { default as authAPI } from './authAPI';

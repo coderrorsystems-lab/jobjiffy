@@ -1,6 +1,50 @@
+<<<<<<< Updated upstream
 import React from 'react'
 import { useTheme } from './theme'
 import ThemeToggle from './components/ThemeToggle'
+=======
+import "./App.css";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { AuthProvider } from "./features/auth/context/AuthContext";
+import { ProtectedRoute } from "./utils/ProtectedRoute";
+import ScrollToTop from "./utils/ScrollToTop";
+import Navbar from "./features/booking/layout/Navbar";
+import Footer from "./features/booking/layout/Footer";
+import BrandIntroOverlay from "./features/user/shared/BrandIntroOverlay";
+import Home from "./features/user/home/Home";
+import { AllServicesPage, AllProfessionals } from "./features/user/home";
+import ProfessionalDetail from "./features/professional/ProfessionalDetail";
+import { ServiceProfessionals } from "./features/user/services";
+import About from "./features/user/About";
+import Contact from "./features/user/home/Contact";
+import Profile from "./features/user/profile";
+import EditProfile from "./features/user/profile/EditProfile";
+import Settings from "./features/user/profile/Settings";
+import { BookingDashboard } from "./features/booking";
+import {
+  Login,
+  RegisterOptionsPage,
+  RegisterPage,
+  ProfessionalRegisterPage,
+  ForgotPasswordPage,
+} from "./features/auth";
+import {
+  ProfessionalLayout,
+  Dashboard,
+  Bookings,
+  Availability,
+  Earnings,
+  Reviews,
+  Settings as ProfessionalSettings,
+  Profile as ProfessionalProfile,
+} from "./features/professional";
+import AdminDashboard from "./features/admin/AdminDashboard";
+import AdminProfessionals from "./features/admin/AdminProfessionals";
+import AdminProfessionalDetail from "./features/admin/AdminProfessionalDetail";
+import AdminUsers from "./features/admin/AdminUsers";
+import AdminUserDetail from "./features/admin/AdminUserDetail";
+import AdminLayout from "./features/admin/AdminLayout";
+>>>>>>> Stashed changes
 
 export default function App() {
   const { theme, isDark } = useTheme()
@@ -21,6 +65,7 @@ export default function App() {
       </header>
 
       {/* Main Content */}
+<<<<<<< Updated upstream
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="bg-bg-card rounded-lg shadow-md border border-border-primary p-8 max-w-2xl w-full">
           <h2 className="text-3xl font-semibold text-text-primary mb-4">
@@ -29,6 +74,19 @@ export default function App() {
           <p className="text-text-secondary mb-6">
             A modern, theme-aware React application with centralized color management.
           </p>
+=======
+      <main className={isProfessionalRoute || isAdminRoute ? "flex-1" : "flex-1 pt-16 md:pt-20"}>
+        <Routes>
+          {/* ==================== PUBLIC ROUTES (No Login Required) ==================== */}
+          
+          <Route path="/" element={<Home />} />
+          <Route path="/services" element={<AllServicesPage />} />
+          <Route path="/services/:serviceId" element={<ServiceProfessionals />} />
+          <Route path="/professionals" element={<AllProfessionals />} />
+          <Route path="/professional/:userId" element={<ProfessionalDetail />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+>>>>>>> Stashed changes
 
           {/* Theme Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
