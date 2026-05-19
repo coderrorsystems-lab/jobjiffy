@@ -9,6 +9,7 @@
 /api/users/             → User business logic (profile, password, bookings, reviews)
 /api/professionals/     → Professional business logic (profile, services, wallet, bookings)
 /api/admin/            → Admin business logic (approve, users, dashboard)
+/api/categories/       → Category & services (browse by category, get services with professionals)
 ```
 
 ---
@@ -105,17 +106,16 @@
   "bio": "string (max 500, optional)",
   "services": [
     {
-      "category": "cleaning | beauty | repair | appliance | personalcare | other",
+      "categoryId": "number (101-109)",
       "serviceName": "string",
-      "desc": "string (optional)",
+      "description": "string (optional)",
       "price": "number (positive)"
     }
   ],
-  "category": "cleaning | beauty | repair | appliance | personalcare | other",
+  "categories": ["number (101-109)", "number (101-109)"],
   "experience": "number (optional)",
   "kycDocuments": {
-    "aadhar": "string (required)",
-    "pan": "string (required)"
+    "collegeId": "string (optional)"
   },
   "accountNumber": "string (optional)",
   "accountHolderName": "string (optional)",
@@ -123,6 +123,11 @@
   "upiId": "string (optional)"
 }
 ```
+
+**Notes:**
+- `categoryId` in services must be between 101-109
+- `categories` array must contain at least one category ID (101-109)
+- Services are automatically added to both Professional model and Category model
 
 **Response:**
 ```json
@@ -332,12 +337,16 @@ All routes use `authenticate` middleware.
 **req.body:**
 ```json
 {
-  "category": "cleaning | beauty | repair | appliance | personalcare | other",
+  "categoryId": "number (101-109)",
   "serviceName": "string",
-  "desc": "string (optional)",
+  "description": "string (optional)",
   "price": "number (positive)"
 }
 ```
+
+**Notes:**
+- Service is added to both Professional model and Category model
+- Service will reference the Category by `categoryId`
 
 ---
 
@@ -514,6 +523,132 @@ All routes use `authenticate` + `authorize('admin')` middleware.
 ```json
 { "message": "Logout successful" }
 ```
+
+---
+
+## CATEGORIES MODULE (`/api/categories/`)
+
+Public routes (no authentication required).
+
+### 1. GET /categories — Get all categories
+
+**Response:**
+```json
+{
+  "categories": [
+    {
+      "_id": "mongodb_object_id",
+      "id": 101,
+      "name": "Logo Design",
+      "description": "Logo and brand identity design services",
+      "isActive": true
+    },
+    ...
+  ]
+}
+```
+
+---
+
+### 2. GET /categories/:id — Get category by ID
+
+**Params:** `id` (number, 101-109)
+
+**Response:**
+```json
+{
+  "category": {
+    "_id": "mongodb_object_id",
+    "id": 101,
+    "name": "Logo Design",
+    "description": "...",
+    "services": [],
+    "isActive": true
+  }
+}
+```
+
+**Errors:**
+- `404` if category not found
+
+---
+
+### 3. GET /categories/:id/services — Get all services in a category
+
+**Params:** `id` (number, 101-109)
+
+**Response:**
+```json
+{
+  "services": [
+    {
+      "_id": "mongodb_object_id",
+      "serviceName": "Basic Logo",
+      "description": "...",
+      "price": 500,
+      "professionalId": "mongodb_object_id"
+    },
+    ...
+  ]
+}
+```
+
+---
+
+### 4. GET /categories/:id/services-with-professionals — Get paginated services with professional details
+
+**Params:** `id` (number, 101-109)
+
+**Query Parameters:**
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `page` | number | 1 | Page number (1-indexed) |
+| `limit` | number | 20 | Items per page (max 50) |
+| `sort` | string | `price_asc` | Sort order: `price_asc`, `price_desc`, `rating`, `newest` |
+| `available` | boolean | true | Filter by available professionals |
+
+**Example:** `GET /api/categories/101/services-with-professionals?page=1&limit=20&sort=price_asc`
+
+**Response:**
+```json
+{
+  "categoryId": 101,
+  "categoryName": "Logo Design",
+  "totalServices": 45,
+  "totalPages": 3,
+  "currentPage": 1,
+  "perPage": 20,
+  "services": [
+    {
+      "serviceId": "mongodb_object_id",
+      "serviceName": "Basic Logo Design",
+      "description": "Professional logo with 3 revisions",
+      "price": 500,
+      "professional": {
+        "id": "mongodb_object_id",
+        "name": "John Doe",
+        "rating": 4.5
+      }
+    },
+    ...
+  ]
+}
+```
+
+**Notes:**
+- Only returns services from professionals with `status: 'approved'`
+- By default, only returns services from `isAvailable: true` professionals
+- Results are cached for 5 minutes
+- Sort options:
+  - `price_asc` - Price low to high
+  - `price_desc` - Price high to low
+  - `rating` - Professional rating (highest first)
+  - `newest` - Most recently added services first
+
+**Errors:**
+- `400` if invalid category ID (must be 101-109)
+- `400` if invalid query parameters
+- `404` if category not found
 
 ---
 
